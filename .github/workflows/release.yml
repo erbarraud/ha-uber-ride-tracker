@@ -1,0 +1,26 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Create ZIP file
+        run: |
+          cd custom_components/uber_ride_tracker
+          zip -r ../../uber_ride_tracker.zip .
+      
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./uber_ride_tracker.zip
+          asset_name: uber_ride_tracker.zip
+          asset_content_type: application/zip
