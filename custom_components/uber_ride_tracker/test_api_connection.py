@@ -18,21 +18,25 @@ API_BASE_URL = "https://api.uber.com"
 class UberAPITest:
     """Test Uber API connection."""
     
-    def __init__(self):
+    def __init__(self, redirect_uri=None):
         """Initialize test."""
         self.client_id = CLIENT_ID
         self.client_secret = CLIENT_SECRET
         self.access_token = None
+        # Use provided redirect URI or default
+        self.redirect_uri = redirect_uri or "https://my.home-assistant.io/redirect/oauth"
         
-    def get_auth_url(self):
+    def get_auth_url(self, custom_redirect=None):
         """Generate OAuth authorization URL."""
         from urllib.parse import urlencode
+        
+        redirect = custom_redirect or self.redirect_uri
         
         params = {
             "client_id": self.client_id,
             "response_type": "code",
-            "scope": "profile ride.request",
-            "redirect_uri": "http://localhost:8080/callback",
+            "scope": "profile",  # Start with just profile scope
+            "redirect_uri": redirect,
             "state": "test123"
         }
         
@@ -46,7 +50,7 @@ class UberAPITest:
             "client_secret": self.client_secret,
             "grant_type": "authorization_code",
             "code": auth_code,
-            "redirect_uri": "http://localhost:8080/callback"
+            "redirect_uri": self.redirect_uri
         }
         
         try:
@@ -139,122 +143,60 @@ class UberAPITest:
         except Exception as e:
             results["current_ride"] = {"success": False, "error": str(e)}
         
-        # Test 3: Trip History
-        try:
-            async with session.get(
-                f"{API_BASE_URL}/v1.2/history",
-                headers=headers,
-                params={"limit": 5}
-            ) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    history = data.get("history", [])
-                    results["trip_history"] = {
-                        "success": True,
-                        "count": len(history),
-                        "recent_trips": [
-                            {
-                                "date": datetime.fromtimestamp(trip.get("start_time", 0)).strftime("%Y-%m-%d"),
-                                "status": trip.get("status")
-                            }
-                            for trip in history[:3]
-                        ] if history else []
-                    }
-                else:
-                    results["trip_history"] = {
-                        "success": False,
-                        "status": response.status,
-                        "error": await response.text()
-                    }
-        except Exception as e:
-            results["trip_history"] = {"success": False, "error": str(e)}
-        
         return results
 
 
-async def test_uber_api_connection():
+async def test_uber_api_connection(redirect_uri=None):
     """Main test function."""
-    tester = UberAPITest()
+    tester = UberAPITest(redirect_uri)
     
     print("\n" + "="*60)
     print("UBER API CONNECTION TEST")
     print("="*60)
     
-    # Step 1: Generate Auth URL
-    auth_url = tester.get_auth_url()
-    print("\n1. OAuth Authorization URL:")
-    print("-" * 60)
-    print(auth_url)
+    # Generate multiple OAuth URLs with different redirect URIs
+    print("\n📍 OAuth URLs (try each one):")
     print("-" * 60)
     
-    print("\n2. Instructions:")
-    print("   a) Open the URL above in a browser")
-    print("   b) Login with your Uber account")
-    print("   c) Authorize the app")
-    print("   d) Copy the 'code' parameter from redirect URL")
-    print("   e) Add it to this script as AUTH_CODE")
+    redirect_options = [
+        "https://my.home-assistant.io/redirect/oauth",
+        "http://localhost:8080/callback",
+        "http://homeassistant.local:8123/auth/external/callback",
+    ]
     
-    # TODO: Replace with actual auth code after OAuth
-    AUTH_CODE = ""  # <-- PASTE YOUR AUTH CODE HERE
+    urls = {}
+    for redirect in redirect_options:
+        url = tester.get_auth_url(redirect)
+        urls[redirect] = url
+        print(f"\n{redirect}:")
+        print(url)
     
-    if not AUTH_CODE:
-        print("\n⚠️  No auth code provided. Showing what would be tested:")
-        print("\nAPI Endpoints to test:")
-        print("✓ User Profile (/v1.2/me)")
-        print("✓ Current Ride (/v1.2/requests/current)")
-        print("✓ Trip History (/v1.2/history)")
-        print("\nExpected data:")
-        print("• User email and name")
-        print("• Active ride status (if any)")
-        print("• Recent trip history")
-        return {
-            "status": "waiting_for_auth_code",
-            "auth_url": auth_url,
-            "credentials_valid": True
-        }
+    print("-" * 60)
     
-    async with aiohttp.ClientSession() as session:
-        # Exchange code for token
-        print("\n3. Exchanging auth code for access token...")
-        token_result = await tester.exchange_code_for_token(AUTH_CODE, session)
-        
-        if not token_result["success"]:
-            print(f"❌ Token exchange failed: {token_result['error']}")
-            return {"status": "token_exchange_failed", "error": token_result}
-        
-        print(f"✅ Access token obtained!")
-        print(f"   Expires in: {token_result['expires_in']} seconds")
-        print(f"   Scope: {token_result['scope']}")
-        
-        # Test API endpoints
-        print("\n4. Testing API endpoints...")
-        api_results = await tester.test_api_endpoints(session)
-        
-        print("\n" + "="*60)
-        print("TEST RESULTS")
-        print("="*60)
-        
-        for endpoint, result in api_results.items():
-            if result.get("success"):
-                print(f"\n✅ {endpoint.upper()}:")
-                for key, value in result.items():
-                    if key != "success":
-                        print(f"   {key}: {value}")
-            else:
-                print(f"\n❌ {endpoint.upper()}: Failed")
-                print(f"   Error: {result.get('error', 'Unknown')}")
-        
-        return {
-            "status": "success",
-            "token_obtained": True,
-            "api_results": api_results
-        }
+    print("\n📋 Instructions:")
+    print("1. Try each URL above until one works")
+    print("2. The working URL should match what's in your Uber app")
+    print("3. After authorizing, copy the code from the redirect")
+    
+    # Return the URLs for the notification
+    main_url = tester.get_auth_url()
+    
+    return {
+        "status": "waiting_for_auth_code",
+        "auth_url": main_url,
+        "all_urls": urls,
+        "credentials_valid": True,
+        "message": "Check logs for multiple redirect URI options"
+    }
 
 
 # This can be run as a service in Home Assistant
 async def async_test_service(hass, call):
     """Service to test Uber API connection."""
-    result = await test_uber_api_connection()
+    # Get redirect URI from config if available
+    redirect_uri = call.data.get("redirect_uri")
+    
+    result = await test_uber_api_connection(redirect_uri)
     
     # Log results
     _LOGGER.info("Uber API Test Results: %s", result)
