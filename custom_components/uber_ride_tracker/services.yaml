@@ -1,3 +1,15 @@
+test_api_connection:
+  name: Test API Connection
+  description: Test connection to Uber API and verify credentials
+  fields:
+    auth_code:
+      name: Authorization Code
+      description: OAuth authorization code from Uber (optional)
+      required: false
+      example: "JG7xxxxxxxxxxxxx"
+      selector:
+        text:
+
 refresh_status:
   name: Refresh Status
   description: Force refresh the current ride status from Uber API

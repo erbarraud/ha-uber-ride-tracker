@@ -3,7 +3,7 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import device_registry as dr
 
 from .const import (
@@ -45,10 +45,38 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Setup platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     
+    # Register test service
+    async def handle_test_api(call: ServiceCall):
+        """Handle the test API service call."""
+        from .test_api_connection import test_uber_api_connection
+        
+        result = await test_uber_api_connection()
+        _LOGGER.info("API Test Result: %s", result)
+        
+        # Fire event with results
+        hass.bus.async_fire(f"{DOMAIN}_api_test_result", result)
+        
+        # Show notification
+        await hass.services.async_call(
+            "persistent_notification",
+            "create",
+            {
+                "title": "Uber API Test Result",
+                "message": f"Check logs for details. Auth URL: {result.get('auth_url', 'N/A')}",
+                "notification_id": "uber_api_test",
+            },
+        )
+    
+    hass.services.async_register(
+        DOMAIN,
+        "test_api_connection",
+        handle_test_api,
+    )
+    
     _LOGGER.info(
         "Uber Ride Tracker integration setup completed. "
         "Note: OAuth authentication is required for API access. "
-        "Currently showing demo data."
+        "Use service 'uber_ride_tracker.test_api_connection' to test API."
     )
     
     return True
