@@ -1,0 +1,42 @@
+# Uber Integration - Git Ignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+
+# Credentials and tokens (NEVER commit these!)
+.uber_test_tokens.json
+credentials.json
+tokens.json
+client_secret.json
+*.secret
+*.key
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+debug.log
+
+# Test outputs
+test_results/
+test_output/
+
+# Local config
+local_config.yaml
+dev_config.yaml

@@ -1,0 +1,279 @@
+# Uber Ride Tracker Dashboard Configuration Examples
+# Add these cards to your Lovelace dashboard for real-time ride tracking
+
+# Basic Ride Status Card
+- type: entities
+  title: Uber Ride Status
+  entities:
+    - entity: sensor.uber_ride_tracker_ride_status
+      name: Current Status
+    - entity: sensor.uber_ride_tracker_ride_progress
+      name: Trip Progress
+    - entity: binary_sensor.uber_ride_tracker_ride_active
+      name: Ride Active
+
+# Detailed Ride Information Card
+- type: vertical-stack
+  cards:
+    - type: conditional
+      conditions:
+        - entity: binary_sensor.uber_ride_tracker_ride_active
+          state: "on"
+      card:
+        type: markdown
+        content: |
+          ## 🚗 Active Uber Ride
+          
+          **Status:** {{ states('sensor.uber_ride_tracker_ride_status') }}
+          **Progress:** {{ states('sensor.uber_ride_tracker_ride_progress') }}%
+          
+          ### Driver Information
+          **Name:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'driver_name') }}
+          **Rating:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'driver_rating') }} ⭐
+          **Phone:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'driver_phone') }}
+          
+          ### Vehicle
+          **Make/Model:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'vehicle_make') }} {{ state_attr('sensor.uber_ride_tracker_ride_status', 'vehicle_model') }}
+          **Color:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'vehicle_color') }}
+          **License Plate:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'vehicle_license_plate') }}
+          
+          ### Trip Details
+          **From:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'pickup_address') }}
+          **To:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'destination_address') }}
+          **Fare Estimate:** ${{ state_attr('sensor.uber_ride_tracker_ride_status', 'fare_estimate') }}
+          
+          [Track on Map]({{ state_attr('sensor.uber_ride_tracker_ride_status', 'map_url') }})
+          [Share Ride]({{ state_attr('sensor.uber_ride_tracker_ride_status', 'share_url') }})
+
+# Map Card with Driver Location
+- type: conditional
+  conditions:
+    - entity: binary_sensor.uber_ride_tracker_ride_active
+      state: "on"
+  card:
+    type: map
+    title: Driver Location
+    entities:
+      - entity: device_tracker.uber_ride_tracker_driver
+    default_zoom: 14
+    dark_mode: true
+
+# Progress Bar Card (requires custom:bar-card from HACS)
+- type: conditional
+  conditions:
+    - entity: binary_sensor.uber_ride_tracker_ride_active
+      state: "on"
+  card:
+    type: custom:bar-card
+    title: Trip Progress
+    entity: sensor.uber_ride_tracker_ride_progress
+    positions:
+      icon: inside
+      indicator: inside
+      name: inside
+    height: 40px
+    color: '#00D775'
+    animation:
+      state: 'on'
+    severity:
+      - value: 0
+        color: '#FF5722'
+      - value: 25
+        color: '#FFC107'
+      - value: 50
+        color: '#2196F3'
+      - value: 75
+        color: '#4CAF50'
+      - value: 90
+        color: '#00D775'
+
+# Gauge Card for Trip Progress
+- type: conditional
+  conditions:
+    - entity: binary_sensor.uber_ride_tracker_ride_active
+      state: "on"
+  card:
+    type: gauge
+    entity: sensor.uber_ride_tracker_ride_progress
+    name: Trip Progress
+    unit: '%'
+    severity:
+      green: 75
+      yellow: 50
+      red: 0
+
+# Picture Elements Card with Driver Photo (Advanced)
+- type: conditional
+  conditions:
+    - entity: binary_sensor.uber_ride_tracker_ride_active
+      state: "on"
+  card:
+    type: picture-elements
+    image: /local/uber_background.png  # Add your own background image
+    elements:
+      - type: image
+        entity: sensor.uber_ride_tracker_ride_status
+        image: "{{ state_attr('sensor.uber_ride_tracker_ride_status', 'driver_photo_url') }}"
+        style:
+          top: 20%
+          left: 20%
+          width: 80px
+          height: 80px
+          border-radius: 50%
+      - type: state-label
+        entity: sensor.uber_ride_tracker_ride_status
+        attribute: driver_name
+        style:
+          top: 40%
+          left: 20%
+          font-size: 16px
+          font-weight: bold
+      - type: state-label
+        entity: sensor.uber_ride_tracker_ride_status
+        style:
+          top: 50%
+          left: 50%
+          font-size: 24px
+          font-weight: bold
+
+# Glance Card for Quick Overview
+- type: glance
+  title: Uber Ride
+  entities:
+    - entity: sensor.uber_ride_tracker_ride_status
+      name: Status
+    - entity: sensor.uber_ride_tracker_ride_progress
+      name: Progress
+    - entity: sensor.uber_ride_tracker_driver_location
+      name: Driver
+
+# Custom Button Card (requires custom:button-card from HACS)
+- type: horizontal-stack
+  cards:
+    - type: custom:button-card
+      entity: binary_sensor.uber_ride_tracker_ride_active
+      name: Refresh Status
+      icon: mdi:refresh
+      tap_action:
+        action: call-service
+        service: uber_ride_tracker.refresh_status
+      styles:
+        card:
+          - height: 60px
+        icon:
+          - color: |
+              [[[
+                return entity.state === 'on' ? '#00D775' : '#9E9E9E';
+              ]]]
+    
+    - type: custom:button-card
+      name: Ride History
+      icon: mdi:history
+      tap_action:
+        action: call-service
+        service: uber_ride_tracker.get_ride_history
+        service_data:
+          limit: 10
+      styles:
+        card:
+          - height: 60px
+        icon:
+          - color: '#2196F3'
+
+# Mushroom Cards (requires mushroom cards from HACS)
+- type: vertical-stack
+  cards:
+    - type: custom:mushroom-title-card
+      title: Uber Ride Tracker
+      subtitle: Real-time ride monitoring
+    
+    - type: custom:mushroom-entity-card
+      entity: sensor.uber_ride_tracker_ride_status
+      name: Ride Status
+      icon_color: green
+      
+    - type: custom:mushroom-template-card
+      primary: Driver
+      secondary: |
+        {% if is_state('binary_sensor.uber_ride_tracker_ride_active', 'on') %}
+          {{ state_attr('sensor.uber_ride_tracker_ride_status', 'driver_name') }}
+          Rating: {{ state_attr('sensor.uber_ride_tracker_ride_status', 'driver_rating') }}⭐
+        {% else %}
+          No active ride
+        {% endif %}
+      icon: mdi:account-tie
+      icon_color: |
+        {% if is_state('binary_sensor.uber_ride_tracker_ride_active', 'on') %}
+          blue
+        {% else %}
+          grey
+        {% endif %}
+      
+    - type: custom:mushroom-template-card
+      primary: Vehicle
+      secondary: |
+        {% if is_state('binary_sensor.uber_ride_tracker_ride_active', 'on') %}
+          {{ state_attr('sensor.uber_ride_tracker_ride_status', 'vehicle_make') }} {{ state_attr('sensor.uber_ride_tracker_ride_status', 'vehicle_model') }}
+          {{ state_attr('sensor.uber_ride_tracker_ride_status', 'vehicle_color') }} - {{ state_attr('sensor.uber_ride_tracker_ride_status', 'vehicle_license_plate') }}
+        {% else %}
+          No vehicle assigned
+        {% endif %}
+      icon: mdi:car
+      icon_color: |
+        {% if is_state('binary_sensor.uber_ride_tracker_ride_active', 'on') %}
+          green
+        {% else %}
+          grey
+        {% endif %}
+
+# Automation Examples
+automation:
+  - alias: "Notify when Uber arrives"
+    trigger:
+      - platform: state
+        entity_id: sensor.uber_ride_tracker_ride_status
+        to: "arriving"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Uber is arriving!"
+          message: "Your Uber driver is approaching the pickup location."
+          data:
+            push:
+              sound: default
+              badge: 1
+
+  - alias: "Notify when ride starts"
+    trigger:
+      - platform: state
+        entity_id: sensor.uber_ride_tracker_ride_status
+        to: "in_progress"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Ride started"
+          message: "Your Uber ride has begun. Have a safe trip!"
+
+  - alias: "Notify when ride completes"
+    trigger:
+      - platform: state
+        entity_id: sensor.uber_ride_tracker_ride_status
+        to: "completed"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Ride completed"
+          message: "You've arrived at your destination. Don't forget to rate your driver!"
+
+  - alias: "Turn on porch light when Uber is arriving"
+    trigger:
+      - platform: state
+        entity_id: sensor.uber_ride_tracker_ride_status
+        to: "arriving"
+    condition:
+      - condition: sun
+        after: sunset
+    action:
+      - service: light.turn_on
+        target:
+          entity_id: light.porch

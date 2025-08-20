@@ -1,0 +1,114 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Uber Ride Tracker Setup",
+        "description": "To connect to Uber, you'll need to create an app at [Uber Developer Dashboard]({docs_url}) and obtain your Client ID and Client Secret.",
+        "data": {
+          "client_id": "Client ID",
+          "client_secret": "Client Secret"
+        },
+        "data_description": {
+          "client_id": "Your Uber app Client ID",
+          "client_secret": "Your Uber app Client Secret"
+        }
+      },
+      "auth": {
+        "title": "Authenticate with Uber",
+        "description": "Please authorize Home Assistant to access your Uber account."
+      },
+      "creation": {
+        "title": "Setting up Uber Ride Tracker",
+        "description": "Finalizing your Uber connection..."
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Uber API",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error occurred",
+      "already_configured": "Account is already configured"
+    },
+    "abort": {
+      "already_configured": "Account is already configured",
+      "cannot_connect": "Failed to connect to Uber API",
+      "invalid_auth": "Invalid authentication",
+      "missing_configuration": "Missing configuration",
+      "oauth_error": "OAuth authentication failed",
+      "unknown": "Unexpected error occurred"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Uber Ride Tracker Options",
+        "description": "Configure your Uber Ride Tracker settings",
+        "data": {
+          "update_interval_active": "Update interval when ride is active (seconds)",
+          "update_interval_inactive": "Update interval when no active ride (seconds)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "ride_status": {
+        "name": "Ride Status",
+        "state": {
+          "no_active_ride": "No active ride",
+          "processing": "Processing",
+          "no_drivers_available": "No drivers available",
+          "accepted": "Accepted",
+          "arriving": "Arriving",
+          "in_progress": "In progress",
+          "driver_canceled": "Driver canceled",
+          "rider_canceled": "Rider canceled",
+          "completed": "Completed",
+          "unknown": "Unknown"
+        }
+      },
+      "ride_progress": {
+        "name": "Ride Progress"
+      },
+      "driver_location": {
+        "name": "Driver Location",
+        "state": {
+          "unavailable": "Unavailable"
+        }
+      }
+    },
+    "binary_sensor": {
+      "ride_active": {
+        "name": "Ride Active"
+      }
+    },
+    "device_tracker": {
+      "driver": {
+        "name": "Driver"
+      }
+    }
+  },
+  "services": {
+    "refresh_status": {
+      "name": "Refresh Status",
+      "description": "Force refresh the current ride status"
+    },
+    "get_ride_history": {
+      "name": "Get Ride History",
+      "description": "Retrieve recent ride history",
+      "fields": {
+        "limit": {
+          "name": "Limit",
+          "description": "Number of rides to retrieve"
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "authentication_failed": "Authentication with Uber failed",
+    "api_error": "Error communicating with Uber API",
+    "rate_limited": "Rate limited by Uber API",
+    "token_expired": "Authentication token has expired",
+    "no_active_ride": "No active ride found",
+    "invalid_response": "Invalid response from Uber API"
+  }
+}

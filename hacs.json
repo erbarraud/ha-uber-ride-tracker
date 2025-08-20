@@ -1,0 +1,10 @@
+{
+  "name": "Uber Ride Tracker",
+  "content_in_root": false,
+  "render_readme": true,
+  "homeassistant": "2024.12.0",
+  "domains": ["sensor", "binary_sensor", "device_tracker"],
+  "country": ["US"],
+  "zip_release": true,
+  "filename": "uber_ride_tracker.zip"
+}
