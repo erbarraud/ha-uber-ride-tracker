@@ -29,8 +29,9 @@ class UberRideTrackerCard extends HTMLElement {
     
     // Check if ride is active
     const isActive = ['processing', 'accepted', 'arriving', 'in_progress'].includes(state);
+    const noActiveRide = state === 'no_active_ride' || state === 'waiting_for_oauth' || !isActive;
     
-    if (!isActive && this.config.hide_when_inactive !== false) {
+    if (!isActive && this.config.hide_when_inactive === true) {
       this.shadowRoot.innerHTML = '';
       return;
     }
@@ -66,6 +67,203 @@ class UberRideTrackerCard extends HTMLElement {
 
     const statusInfo = getStatusStyle(state);
 
+    // Show empty state when no active ride
+    if (noActiveRide) {
+      this.shadowRoot.innerHTML = `
+        <style>
+          :host {
+            display: block;
+          }
+          
+          .empty-state-card {
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            position: relative;
+            overflow: hidden;
+            min-height: 180px;
+          }
+          
+          .empty-state-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -30%;
+            width: 100%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.02) 0%, transparent 70%);
+            animation: float 20s infinite ease-in-out;
+          }
+          
+          @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(10deg); }
+          }
+          
+          .uber-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 1;
+          }
+          
+          .uber-logo {
+            width: 48px;
+            height: 48px;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: #000;
+            font-size: 24px;
+            margin-right: 16px;
+            box-shadow: 0 4px 12px rgba(255,255,255,0.1);
+          }
+          
+          .uber-title {
+            flex: 1;
+          }
+          
+          .uber-name {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+          }
+          
+          .uber-tagline {
+            font-size: 14px;
+            opacity: 0.7;
+            font-weight: 400;
+          }
+          
+          .empty-content {
+            position: relative;
+            z-index: 1;
+          }
+          
+          .empty-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+          }
+          
+          .empty-message {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: -0.3px;
+          }
+          
+          .empty-submessage {
+            text-align: center;
+            font-size: 14px;
+            opacity: 0.6;
+            line-height: 1.4;
+            margin-bottom: 20px;
+          }
+          
+          .status-pills {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+          }
+          
+          .status-pill {
+            background: rgba(255,255,255,0.1);
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          }
+          
+          .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #00ff88;
+            animation: pulse 2s infinite;
+          }
+          
+          .status-dot.inactive {
+            background: #666;
+            animation: none;
+          }
+          
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+          }
+          
+          .hint-text {
+            text-align: center;
+            font-size: 11px;
+            opacity: 0.4;
+            margin-top: 16px;
+            font-style: italic;
+          }
+        </style>
+        
+        <div class="empty-state-card">
+          <div class="uber-header">
+            <div class="uber-logo">U</div>
+            <div class="uber-title">
+              <div class="uber-name">Uber Ride Tracker</div>
+              <div class="uber-tagline">Home Assistant Integration</div>
+            </div>
+          </div>
+          
+          <div class="empty-content">
+            <div class="empty-icon">
+              <ha-icon icon="mdi:car-outline" style="width: 32px; height: 32px; opacity: 0.8;"></ha-icon>
+            </div>
+            <div class="empty-message">No Active Ride</div>
+            <div class="empty-submessage">
+              Your ride information will appear here<br>when you request an Uber
+            </div>
+            
+            <div class="status-pills">
+              <div class="status-pill">
+                <div class="status-dot ${attributes.integration_status === 'configured' ? '' : 'inactive'}"></div>
+                <span>Integration ${attributes.integration_status === 'configured' ? 'Ready' : 'Setup Needed'}</span>
+              </div>
+              ${attributes.message && attributes.message.includes('OAuth') ? `
+                <div class="status-pill">
+                  <div class="status-dot inactive"></div>
+                  <span>OAuth Required</span>
+                </div>
+              ` : ''}
+            </div>
+            
+            <div class="hint-text">
+              Request a ride in the Uber app to see live tracking here
+            </div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    // Active ride display
     this.shadowRoot.innerHTML = `
       <style>
         :host {
