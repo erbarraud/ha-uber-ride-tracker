@@ -100,15 +100,21 @@ A comprehensive Home Assistant integration that provides real-time Uber ride tra
 
 This integration includes a custom Lovelace card that mimics Apple's Live Activity design for a beautiful, intuitive ride tracking experience.
 
-#### Installation
-1. Copy `www/uber-ride-tracker-card.js` to your `www` folder
-2. Add as a Lovelace resource:
-   - Go to **Settings** → **Dashboards** → **Resources**
-   - Click **Add Resource**
-   - URL: `/local/uber-ride-tracker-card.js`
-   - Resource Type: **JavaScript Module**
+#### 🎯 Easy Installation (3 Ways)
 
-#### Usage
+##### Option 1: Auto-Registered (HACS Users)
+**The card is automatically available after installing the integration!**
+1. Edit any dashboard
+2. Click **"+ Add Card"** 
+3. Search for **"Uber Ride Tracker"**
+4. Click to add!
+
+##### Option 2: GUI Method (All Users)
+1. The integration automatically registers the card
+2. You'll see a notification after setup with instructions
+3. Simply add the card from the card picker
+
+##### Option 3: Manual YAML
 ```yaml
 # Simple configuration
 type: custom:uber-ride-tracker-card

@@ -3,6 +3,7 @@
   "content_in_root": false,
   "render_readme": true,
   "homeassistant": "2024.1.0",
-  "domains": ["sensor", "binary_sensor", "device_tracker"],
-  "country": ["US"]
+  "domains": ["sensor", "binary_sensor", "device_tracker", "update"],
+  "country": ["US"],
+  "filename": "uber-ride-tracker-card.js"
 }
