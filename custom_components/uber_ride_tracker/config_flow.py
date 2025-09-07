@@ -17,8 +17,8 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 STEP_USER_DATA_SCHEMA = vol.Schema({
-    vol.Required(CONF_CLIENT_ID): str,
-    vol.Required(CONF_CLIENT_SECRET): str,
+    vol.Required(CONF_CLIENT_ID): str,  # Shows as "Application ID" in UI via translations
+    vol.Required(CONF_CLIENT_SECRET): str,  # Shows as "Secret" in UI via translations
 })
 
 
@@ -39,10 +39,10 @@ class UberRideTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 client_id = user_input[CONF_CLIENT_ID].strip()
                 client_secret = user_input[CONF_CLIENT_SECRET].strip()
                 
-                # Basic validation
-                if len(client_id) < 10:
+                # Basic validation - Uber Application IDs are typically 22+ characters
+                if len(client_id) < 20:
                     errors["base"] = "invalid_client_id"
-                elif len(client_secret) < 10:
+                elif len(client_secret) < 20:
                     errors["base"] = "invalid_client_secret"
                 else:
                     # Set unique ID to prevent duplicate entries

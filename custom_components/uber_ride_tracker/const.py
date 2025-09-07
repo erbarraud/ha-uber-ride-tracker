@@ -53,8 +53,9 @@ ACTIVE_RIDE_STATUSES: Final = [
 ]
 
 # Entity Keys
-CONF_CLIENT_ID: Final = "client_id"
-CONF_CLIENT_SECRET: Final = "client_secret"
+CONF_CLIENT_ID: Final = "client_id"  # Internally we still use client_id for OAuth compatibility
+CONF_CLIENT_SECRET: Final = "client_secret"  # Internally we still use client_secret for OAuth compatibility
+# Note: Uber dashboard shows these as "Application ID" and "Secret"
 CONF_AUTH_CODE: Final = "auth_code"
 CONF_ACCESS_TOKEN: Final = "access_token"
 CONF_REFRESH_TOKEN: Final = "refresh_token"

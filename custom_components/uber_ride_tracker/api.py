@@ -1,4 +1,11 @@
-"""Uber API client."""
+"""Uber API client.
+
+Note: Uber's developer dashboard shows credentials as:
+- Application ID (we use as client_id for OAuth)
+- Secret (we use as client_secret for OAuth)
+
+These map directly to OAuth2 client_id and client_secret parameters.
+"""
 import asyncio
 import logging
 from datetime import datetime

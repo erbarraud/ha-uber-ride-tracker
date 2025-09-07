@@ -28,7 +28,7 @@ A comprehensive Home Assistant integration that provides real-time Uber ride tra
 1. **Uber Developer Account**
    - Sign up at [Uber Developer Dashboard](https://developer.uber.com/)
    - Create a new app
-   - Note your Client ID and Client Secret
+   - Note your Application ID and Secret (shown in the dashboard)
 
 2. **Home Assistant Requirements**
    - Home Assistant 2024.12.0 or newer
@@ -78,8 +78,8 @@ A comprehensive Home Assistant integration that provides real-time Uber ride tra
 1. Go to **Settings** → **Devices & Services**
 2. Click **Add Integration**
 3. Search for **Uber Ride Tracker**
-4. Enter your **Client ID** and **Client Secret**
-5. Complete OAuth authorization
+4. Enter your **Application ID** and **Secret** (from Uber dashboard)
+5. Complete OAuth authorization (when implemented)
 6. Integration will be configured automatically
 
 ## 📊 Entities

@@ -3,16 +3,16 @@
     "step": {
       "user": {
         "title": "Uber Ride Tracker Setup",
-        "description": "To set up Uber Ride Tracker, you'll need to:\n\n1. Create a free Uber Developer account\n2. Create an app in your dashboard\n3. Add your redirect URI to the app\n4. Enter your credentials below",
+        "description": "To set up Uber Ride Tracker, you'll need:\n\n1. Go to developer.uber.com and sign in\n2. Create an app or select existing one\n3. Find your Application ID and Secret in the dashboard\n4. Add this redirect URI to your app:\n   {redirect_uri}\n\nEnter the credentials shown in your Uber dashboard:",
         "data": {
-          "client_id": "Client ID",
-          "client_secret": "Client Secret"
+          "client_id": "Application ID",
+          "client_secret": "Secret"
         }
       }
     },
     "error": {
-      "invalid_client_id": "Client ID appears to be invalid",
-      "invalid_client_secret": "Client Secret appears to be invalid",
+      "invalid_client_id": "Application ID appears to be invalid",
+      "invalid_client_secret": "Secret appears to be invalid",
       "invalid_auth": "Unable to authenticate",
       "unknown": "Unexpected error occurred"
     },
