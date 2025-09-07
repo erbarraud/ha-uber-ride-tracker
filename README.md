@@ -92,39 +92,70 @@ A comprehensive Home Assistant integration that provides real-time Uber ride tra
 | `binary_sensor.uber_ride_tracker_ride_active` | Binary Sensor | Whether a ride is currently active |
 | `device_tracker.uber_ride_tracker_driver` | Device Tracker | Driver location for map tracking |
 
-## 🎨 Dashboard Examples
+## 🎨 Dashboard Cards
 
-### Basic Status Card
+### Apple Live Activity Style Card (Recommended)
+
+<img src="https://github.com/yourusername/ha-uber-ride-tracker/assets/images/live-activity-card.png" alt="Live Activity Card" width="400">
+
+This integration includes a custom Lovelace card that mimics Apple's Live Activity design for a beautiful, intuitive ride tracking experience.
+
+#### Installation
+1. Copy `www/uber-ride-tracker-card.js` to your `www` folder
+2. Add as a Lovelace resource:
+   - Go to **Settings** → **Dashboards** → **Resources**
+   - Click **Add Resource**
+   - URL: `/local/uber-ride-tracker-card.js`
+   - Resource Type: **JavaScript Module**
+
+#### Usage
 ```yaml
-type: entities
-title: Uber Ride
-entities:
-  - entity: sensor.uber_ride_tracker_ride_status
-  - entity: sensor.uber_ride_tracker_ride_progress
-  - entity: binary_sensor.uber_ride_tracker_ride_active
+# Simple configuration
+type: custom:uber-ride-tracker-card
+entity: sensor.uber_ride_tracker_ride_status
+
+# With options
+type: custom:uber-ride-tracker-card
+entity: sensor.uber_ride_tracker_ride_status
+hide_when_inactive: false  # Always show card
 ```
 
-### Map Card
-```yaml
-type: map
-entities:
-  - entity: device_tracker.uber_ride_tracker_driver
-default_zoom: 14
-```
+#### Features
+- 🎨 **Beautiful gradient design** matching Apple's Live Activities
+- 📍 **Real-time updates** with live indicator
+- 👤 **Driver information** with photo, rating, and vehicle details
+- 📊 **Visual progress bar** showing trip completion
+- 📱 **Action buttons** for calling driver, sharing trip, and viewing map
+- 📱 **Responsive design** for mobile and desktop
+- 🌙 **Auto-hide** when no active ride (configurable)
 
-### Conditional Card (Shows only during active ride)
+### Alternative Dashboard Examples
+
+For more dashboard examples including basic cards, maps, and automations, see the [lovelace-examples.yaml](lovelace-examples.yaml) file.
+
+#### Quick Examples:
+
+**Conditional Card (Shows only during active ride)**
 ```yaml
 type: conditional
 conditions:
   - entity: binary_sensor.uber_ride_tracker_ride_active
     state: "on"
 card:
-  type: markdown
-  content: |
-    ## 🚗 Active Uber Ride
-    **Driver:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'driver_name') }}
-    **Vehicle:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'vehicle_make') }} {{ state_attr('sensor.uber_ride_tracker_ride_status', 'vehicle_model') }}
-    **Progress:** {{ states('sensor.uber_ride_tracker_ride_progress') }}%
+  type: custom:uber-ride-tracker-card
+  entity: sensor.uber_ride_tracker_ride_status
+```
+
+**Full Dashboard with Map**
+```yaml
+type: vertical-stack
+cards:
+  - type: custom:uber-ride-tracker-card
+    entity: sensor.uber_ride_tracker_ride_status
+  - type: map
+    entities:
+      - entity: device_tracker.uber_ride_tracker_driver
+    default_zoom: 14
 ```
 
 ## 🤖 Automations

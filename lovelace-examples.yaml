@@ -1,0 +1,246 @@
+# Uber Ride Tracker - Lovelace Dashboard Examples
+# Copy these examples to your Home Assistant dashboard configuration
+
+# ============================================
+# APPLE LIVE ACTIVITY STYLE CARD (CUSTOM)
+# ============================================
+# First, add the custom card resource:
+# Configuration > Lovelace Dashboards > Resources > Add Resource
+# URL: /local/uber-ride-tracker-card.js
+# Resource Type: JavaScript Module
+
+# Basic Live Activity Card
+- type: custom:uber-ride-tracker-card
+  entity: sensor.uber_ride_tracker_ride_status
+  hide_when_inactive: true  # Hide card when no active ride
+
+# Always Visible Version
+- type: custom:uber-ride-tracker-card
+  entity: sensor.uber_ride_tracker_ride_status
+  hide_when_inactive: false
+
+# ============================================
+# CONDITIONAL WRAPPER (Shows only during rides)
+# ============================================
+- type: conditional
+  conditions:
+    - entity: binary_sensor.uber_ride_tracker_ride_active
+      state: "on"
+  card:
+    type: custom:uber-ride-tracker-card
+    entity: sensor.uber_ride_tracker_ride_status
+
+# ============================================
+# FULL DASHBOARD VIEW WITH MAP
+# ============================================
+- type: vertical-stack
+  cards:
+    # Live Activity Card
+    - type: custom:uber-ride-tracker-card
+      entity: sensor.uber_ride_tracker_ride_status
+      hide_when_inactive: true
+    
+    # Map (shows during active ride)
+    - type: conditional
+      conditions:
+        - entity: binary_sensor.uber_ride_tracker_ride_active
+          state: "on"
+      card:
+        type: map
+        entities:
+          - entity: device_tracker.uber_ride_tracker_driver
+        default_zoom: 14
+        aspect_ratio: 16:9
+
+# ============================================
+# COMPACT GLANCE CARD
+# ============================================
+- type: glance
+  title: Uber Status
+  entities:
+    - entity: sensor.uber_ride_tracker_ride_status
+      name: Status
+    - entity: sensor.uber_ride_tracker_ride_progress
+      name: Progress
+    - entity: binary_sensor.uber_ride_tracker_ride_active
+      name: Active
+
+# ============================================
+# DETAILED ENTITIES CARD
+# ============================================
+- type: entities
+  title: Uber Ride Details
+  show_header_toggle: false
+  entities:
+    - entity: sensor.uber_ride_tracker_ride_status
+      name: Ride Status
+    - type: attribute
+      entity: sensor.uber_ride_tracker_ride_status
+      attribute: driver_name
+      name: Driver
+    - type: attribute
+      entity: sensor.uber_ride_tracker_ride_status
+      attribute: vehicle_make
+      name: Vehicle
+    - type: attribute
+      entity: sensor.uber_ride_tracker_ride_status
+      attribute: pickup_eta
+      name: Pickup ETA
+      suffix: " minutes"
+    - type: attribute
+      entity: sensor.uber_ride_tracker_ride_status
+      attribute: destination_eta
+      name: Arrival ETA
+      suffix: " minutes"
+    - entity: sensor.uber_ride_tracker_ride_progress
+      name: Trip Progress
+
+# ============================================
+# MARKDOWN CARD WITH DYNAMIC INFO
+# ============================================
+- type: markdown
+  title: Current Uber Ride
+  content: |
+    {% if is_state('binary_sensor.uber_ride_tracker_ride_active', 'on') %}
+    ## 🚗 Active Ride
+    
+    **Status:** {{ states('sensor.uber_ride_tracker_ride_status') | title }}
+    
+    ### Driver Information
+    - **Name:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'driver_name') }}
+    - **Rating:** ⭐ {{ state_attr('sensor.uber_ride_tracker_ride_status', 'driver_rating') }}
+    - **Vehicle:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'vehicle_color') }} {{ state_attr('sensor.uber_ride_tracker_ride_status', 'vehicle_make') }} {{ state_attr('sensor.uber_ride_tracker_ride_status', 'vehicle_model') }}
+    - **License:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'vehicle_license_plate') }}
+    
+    ### Trip Details
+    - **From:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'pickup_address') }}
+    - **To:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'destination_address') }}
+    - **Progress:** {{ states('sensor.uber_ride_tracker_ride_progress') }}%
+    - **ETA:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'destination_eta') }} minutes
+    
+    ### Fare
+    - **Estimate:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'fare_estimate') }}
+    - **Surge:** {{ state_attr('sensor.uber_ride_tracker_ride_status', 'surge_multiplier') }}x
+    {% else %}
+    No active ride at the moment.
+    {% endif %}
+
+# ============================================
+# PICTURE ELEMENTS CARD (Advanced)
+# ============================================
+- type: picture-elements
+  image: /local/images/city-map-background.jpg  # Add your own background
+  elements:
+    # Status Badge
+    - type: state-badge
+      entity: sensor.uber_ride_tracker_ride_status
+      style:
+        top: 10%
+        left: 10%
+    
+    # Progress Bar
+    - type: custom:bar-card
+      entity: sensor.uber_ride_tracker_ride_progress
+      positions:
+        icon: off
+        name: off
+      style:
+        top: 90%
+        left: 50%
+        width: 80%
+        transform: translateX(-50%)
+    
+    # Driver Location
+    - type: state-icon
+      entity: device_tracker.uber_ride_tracker_driver
+      style:
+        top: 50%
+        left: 50%
+
+# ============================================
+# MOBILE-OPTIMIZED STACK
+# ============================================
+- type: vertical-stack
+  cards:
+    # Compact Status
+    - type: custom:mushroom-entity-card
+      entity: sensor.uber_ride_tracker_ride_status
+      icon: mdi:uber
+      primary_info: state
+      secondary_info: last-changed
+      
+    # Live Activity Card
+    - type: conditional
+      conditions:
+        - entity: binary_sensor.uber_ride_tracker_ride_active
+          state: "on"
+      card:
+        type: custom:uber-ride-tracker-card
+        entity: sensor.uber_ride_tracker_ride_status
+    
+    # Quick Actions
+    - type: horizontal-stack
+      cards:
+        - type: button
+          entity: sensor.uber_ride_tracker_ride_status
+          name: Refresh
+          icon: mdi:refresh
+          tap_action:
+            action: call-service
+            service: uber_ride_tracker.refresh_status
+        
+        - type: button
+          entity: sensor.uber_ride_tracker_ride_status
+          name: History
+          icon: mdi:history
+          tap_action:
+            action: call-service
+            service: uber_ride_tracker.get_ride_history
+            service_data:
+              limit: 5
+
+# ============================================
+# GAUGE CARD FOR PROGRESS
+# ============================================
+- type: gauge
+  entity: sensor.uber_ride_tracker_ride_progress
+  name: Trip Progress
+  unit: '%'
+  min: 0
+  max: 100
+  severity:
+    green: 66
+    yellow: 33
+    red: 0
+  needle: true
+
+# ============================================
+# CUSTOM BUTTON CARD (requires custom:button-card)
+# ============================================
+- type: custom:button-card
+  entity: sensor.uber_ride_tracker_ride_status
+  show_state: true
+  show_name: true
+  show_icon: true
+  icon: mdi:uber
+  name: Uber Ride
+  state_display: |
+    [[[
+      if (entity.state === 'in_progress') {
+        return 'On the way - ' + states['sensor.uber_ride_tracker_ride_progress'].state + '%';
+      }
+      return entity.state;
+    ]]]
+  styles:
+    card:
+      - background: |
+          [[[
+            if (entity.state === 'in_progress') return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            if (entity.state === 'arriving') return 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+            return 'var(--card-background-color)';
+          ]]]
+      - color: |
+          [[[
+            if (['in_progress', 'arriving'].includes(entity.state)) return 'white';
+            return 'var(--primary-text-color)';
+          ]]]
