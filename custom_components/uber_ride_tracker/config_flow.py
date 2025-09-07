@@ -217,14 +217,14 @@ class UberRideTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             "client_id": self.client_id,
             "response_type": "code",
             "redirect_uri": self.redirect_uri,
-            "state": "ha_setup"
-            # Don't specify scope to avoid invalid_scope error
-            # Uber will use the default scopes configured in the app
+            "state": "ha_setup",
+            "scope": ""  # Empty scope - let Uber use app defaults
         }
         
         # Correct OAuth v2 endpoint per Uber docs
         auth_url = f"https://auth.uber.com/oauth/v2/authorize?{urlencode(params)}"
-        _LOGGER.info("Using correct auth.uber.com endpoint: %s", auth_url)
+        _LOGGER.info("OAuth URL params: %s", params)
+        _LOGGER.info("Full OAuth URL: %s", auth_url)
         return auth_url
 
     async def _exchange_auth_code(self) -> bool:
