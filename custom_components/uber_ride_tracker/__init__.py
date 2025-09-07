@@ -75,27 +75,39 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("API Access Test Result: %s", result)
         
         # Format message for notification
-        message = f"## API Test Results\n\n"
-        message += f"**Token Valid:** {'✅' if result['token_valid'] else '❌'}\n"
-        message += f"**Time:** {result['timestamp']}\n\n"
+        if result.get('requires_oauth'):
+            message = "## 🔐 OAuth Authorization Required\n\n"
+            message += f"**Auth URL:** {result.get('auth_url')}\n\n"
+            message += "### Instructions:\n"
+            message += "1. Add this redirect URI to your Uber app:\n"
+            message += "   `https://home.erbarraud.com/auth/external/callback`\n\n"
+            message += "2. Visit the auth URL above\n"
+            message += "3. Authorize the app\n"
+            message += "4. Copy the code from the redirect URL\n"
+            message += "5. Use the `uber_ride_tracker.authorize` service with that code\n"
+        else:
+            message = f"## API Test Results\n\n"
+            message += f"**Token Valid:** {'✅' if result['token_valid'] else '❌'}\n"
+            message += f"**Time:** {result['timestamp']}\n\n"
         
-        if result['errors']:
-            message += "### ❌ Errors:\n"
+        if result.get('errors'):
+            message += "\n### ❌ Errors:\n"
             for error in result['errors']:
                 message += f"- {error}\n"
             message += "\n"
         
-        message += "### Endpoint Access:\n"
-        for endpoint in result['accessible_endpoints']:
-            status_emoji = "✅" if endpoint['accessible'] else "❌"
-            message += f"\n{status_emoji} **{endpoint['description']}**\n"
-            message += f"   Endpoint: `{endpoint['endpoint']}`\n"
-            message += f"   Status: {endpoint['status']}\n"
-            
-            if endpoint.get('sample_data'):
-                message += f"   Data: {endpoint['sample_data']}\n"
-            if endpoint.get('error'):
-                message += f"   Error: {endpoint['error']}\n"
+        if result.get('accessible_endpoints'):
+            message += "### Endpoint Access:\n"
+            for endpoint in result['accessible_endpoints']:
+                status_emoji = "✅" if endpoint['accessible'] else "❌"
+                message += f"\n{status_emoji} **{endpoint['description']}**\n"
+                message += f"   Endpoint: `{endpoint['endpoint']}`\n"
+                message += f"   Status: {endpoint['status']}\n"
+                
+                if endpoint.get('sample_data'):
+                    message += f"   Data: {endpoint['sample_data']}\n"
+                if endpoint.get('error'):
+                    message += f"   Error: {endpoint['error']}\n"
         
         # Show notification
         await hass.services.async_call(
