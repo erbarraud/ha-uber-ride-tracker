@@ -48,7 +48,7 @@ class UberAPIClient:
             # Removed scope parameter - let Uber use defaults
         }
         
-        auth_url = f"https://login.uber.com/oauth/v2/authorize?{urlencode(auth_params)}"
+        auth_url = f"https://auth.uber.com/oauth/v2/authorize?{urlencode(auth_params)}"
         
         _LOGGER.warning(
             "Uber API requires OAuth user authorization. "
@@ -80,7 +80,7 @@ class UberAPIClient:
         
         try:
             async with self.session.post(
-                "https://login.uber.com/oauth/v2/token",
+                "https://auth.uber.com/oauth/v2/token",
                 data=token_data,
                 headers={"Content-Type": "application/x-www-form-urlencoded"}
             ) as response:

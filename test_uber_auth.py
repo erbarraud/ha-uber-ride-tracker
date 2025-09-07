@@ -11,9 +11,9 @@ CLIENT_ID = "g7UPHAGKIBhPE8dEcXTQ3-Wa8UPl1b-elf"  # Your App ID from Uber
 CLIENT_SECRET = ""  # Add your secret here
 REDIRECT_URI = "https://home.erbarraud.com/local/uber_callback.html"
 
-# Uber API endpoints
-AUTH_URL = "https://login.uber.com/oauth/v2/authorize"
-TOKEN_URL = "https://login.uber.com/oauth/v2/token"
+# Uber API endpoints - Use auth.uber.com (not login.uber.com)
+AUTH_URL = "https://auth.uber.com/oauth/v2/authorize"
+TOKEN_URL = "https://auth.uber.com/oauth/v2/token"
 API_BASE = "https://api.uber.com"
 
 

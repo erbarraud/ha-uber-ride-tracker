@@ -212,16 +212,19 @@ class UberRideTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _generate_auth_url(self) -> str:
         """Generate OAuth authorization URL."""
-        # Don't specify scope - let Uber use default scopes
-        # The invalid_scope error suggests Uber doesn't accept the scopes we're requesting
+        # Use the correct auth.uber.com domain (not login.uber.com)
         params = {
             "client_id": self.client_id,
             "response_type": "code",
             "redirect_uri": self.redirect_uri,
-            "state": "ha_setup"
+            "state": "ha_setup",
+            "scope": "profile"  # Try with just profile scope
         }
-        _LOGGER.info("Generating auth URL without explicit scopes to avoid invalid_scope error")
-        return f"https://login.uber.com/oauth/v2/authorize?{urlencode(params)}"
+        
+        # Correct OAuth v2 endpoint per Uber docs
+        auth_url = f"https://auth.uber.com/oauth/v2/authorize?{urlencode(params)}"
+        _LOGGER.info("Using correct auth.uber.com endpoint: %s", auth_url)
+        return auth_url
 
     async def _exchange_auth_code(self) -> bool:
         """Exchange authorization code for access token."""
@@ -237,8 +240,9 @@ class UberRideTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         }
         
         try:
+            # Use correct auth.uber.com domain for token endpoint
             async with session.post(
-                "https://login.uber.com/oauth/v2/token",
+                "https://auth.uber.com/oauth/v2/token",
                 data=data,
                 headers={"Content-Type": "application/x-www-form-urlencoded"}
             ) as response:
