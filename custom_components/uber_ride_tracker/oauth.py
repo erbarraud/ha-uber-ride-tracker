@@ -98,7 +98,8 @@ class UberOAuth2Implementation(config_entry_oauth2_flow.AbstractOAuth2Implementa
     def extra_authorize_data(self) -> dict:
         """Extra data to include in authorization URL."""
         return {
-            "scope": " ".join(OAUTH2_SCOPES),
+            # Don't include scope to avoid invalid_scope error
+            # Uber will use default scopes from app configuration
             "response_type": "code",
         }
 
@@ -109,7 +110,7 @@ class UberOAuth2Implementation(config_entry_oauth2_flow.AbstractOAuth2Implementa
             "client_id": self._client_id,
             "redirect_uri": redirect_uri,
             "response_type": "code",
-            "scope": " ".join(OAUTH2_SCOPES),
+            # Don't include scope - let Uber use app defaults
             "state": flow_id,
         }
         
