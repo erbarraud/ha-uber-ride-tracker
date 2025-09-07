@@ -63,32 +63,137 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Setup platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     
-    # Register test service
-    async def handle_test_api(call: ServiceCall):
-        """Handle the test API service call."""
-        from .test_api_connection import test_uber_api_connection
+    # Register diagnostic services
+    async def handle_test_api_access(call: ServiceCall):
+        """Test what API endpoints are accessible."""
+        api_client = hass.data[DOMAIN][entry.entry_id].get("api_client")
+        if not api_client:
+            _LOGGER.error("No API client available")
+            return
         
-        result = await test_uber_api_connection()
-        _LOGGER.info("API Test Result: %s", result)
+        result = await api_client.test_api_access()
+        _LOGGER.info("API Access Test Result: %s", result)
         
-        # Fire event with results
-        hass.bus.async_fire(f"{DOMAIN}_api_test_result", result)
+        # Format message for notification
+        message = f"## API Test Results\n\n"
+        message += f"**Token Valid:** {'✅' if result['token_valid'] else '❌'}\n"
+        message += f"**Time:** {result['timestamp']}\n\n"
+        
+        if result['errors']:
+            message += "### ❌ Errors:\n"
+            for error in result['errors']:
+                message += f"- {error}\n"
+            message += "\n"
+        
+        message += "### Endpoint Access:\n"
+        for endpoint in result['accessible_endpoints']:
+            status_emoji = "✅" if endpoint['accessible'] else "❌"
+            message += f"\n{status_emoji} **{endpoint['description']}**\n"
+            message += f"   Endpoint: `{endpoint['endpoint']}`\n"
+            message += f"   Status: {endpoint['status']}\n"
+            
+            if endpoint.get('sample_data'):
+                message += f"   Data: {endpoint['sample_data']}\n"
+            if endpoint.get('error'):
+                message += f"   Error: {endpoint['error']}\n"
         
         # Show notification
         await hass.services.async_call(
             "persistent_notification",
             "create",
             {
-                "title": "Uber API Test Result",
-                "message": f"Check logs for details. Auth URL: {result.get('auth_url', 'N/A')}",
-                "notification_id": "uber_api_test",
+                "title": "🔍 Uber API Diagnostic Results",
+                "message": message,
+                "notification_id": "uber_api_diagnostic",
             },
         )
     
+    async def handle_get_ride_history(call: ServiceCall):
+        """Get ride history from Uber."""
+        api_client = hass.data[DOMAIN][entry.entry_id].get("api_client")
+        if not api_client:
+            _LOGGER.error("No API client available")
+            return
+        
+        limit = call.data.get("limit", 5)
+        result = await api_client.get_ride_history(limit)
+        
+        if result and result.get("success"):
+            message = f"## Ride History\n\n"
+            message += f"**Total Rides:** {result.get('count', 0)}\n\n"
+            
+            for i, ride in enumerate(result.get('rides', []), 1):
+                message += f"### Ride {i}\n"
+                message += f"- Status: {ride.get('status')}\n"
+                message += f"- Time: {ride.get('start_time')}\n"
+                message += f"- Distance: {ride.get('distance')} miles\n"
+                message += f"- Duration: {ride.get('duration')} mins\n"
+                message += f"- Fare: ${ride.get('total')}\n\n"
+        else:
+            message = f"## ❌ Failed to get ride history\n\n"
+            message += f"Error: {result.get('error') if result else 'No response'}\n"
+            if result and result.get('details'):
+                message += f"Details: {result['details']}\n"
+        
+        await hass.services.async_call(
+            "persistent_notification",
+            "create",
+            {
+                "title": "📜 Uber Ride History",
+                "message": message,
+                "notification_id": "uber_ride_history",
+            },
+        )
+    
+    async def handle_check_current_ride(call: ServiceCall):
+        """Manually check for current ride."""
+        api_client = hass.data[DOMAIN][entry.entry_id].get("api_client")
+        if not api_client:
+            _LOGGER.error("No API client available")
+            return
+        
+        ride_data = await api_client.get_current_ride()
+        
+        if ride_data:
+            if ride_data.get("has_ride"):
+                message = f"## 🚗 Active Ride Found!\n\n"
+                message += f"**Status:** {ride_data.get('status')}\n"
+                message += f"**Driver:** {ride_data.get('driver_name', 'Unknown')}\n"
+                message += f"**Vehicle:** {ride_data.get('vehicle_make', '')} {ride_data.get('vehicle_model', '')}\n"
+                message += f"**License:** {ride_data.get('vehicle_license_plate', '')}\n"
+                message += f"**ETA:** {ride_data.get('eta', '?')} minutes\n"
+            else:
+                message = "## No Active Ride\n\nNo ride is currently in progress."
+        else:
+            message = "## ❌ Failed to check ride\n\nCould not retrieve ride data from Uber API."
+        
+        await hass.services.async_call(
+            "persistent_notification",
+            "create",
+            {
+                "title": "🔄 Current Ride Status",
+                "message": message,
+                "notification_id": "uber_current_ride",
+            },
+        )
+    
+    # Register all services
     hass.services.async_register(
         DOMAIN,
-        "test_api_connection",
-        handle_test_api,
+        "test_api_access",
+        handle_test_api_access,
+    )
+    
+    hass.services.async_register(
+        DOMAIN,
+        "get_ride_history", 
+        handle_get_ride_history,
+    )
+    
+    hass.services.async_register(
+        DOMAIN,
+        "check_current_ride",
+        handle_check_current_ride,
     )
     
     _LOGGER.info(

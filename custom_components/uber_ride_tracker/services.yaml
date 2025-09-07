@@ -1,29 +1,25 @@
-test_api_connection:
-  name: Test API Connection
-  description: Test connection to Uber API and verify credentials
-  fields:
-    auth_code:
-      name: Authorization Code
-      description: OAuth authorization code from Uber (optional)
-      required: false
-      example: "JG7xxxxxxxxxxxxx"
-      selector:
-        text:
+# Diagnostic Services for Uber Ride Tracker
 
-refresh_status:
-  name: Refresh Status
-  description: Force refresh the current ride status from Uber API
-  
+test_api_access:
+  name: Test API Access
+  description: Test which Uber API endpoints are accessible with your credentials. Shows results in a notification.
+  fields: {}
+
+check_current_ride:
+  name: Check Current Ride
+  description: Manually check for an active Uber ride and display status in a notification
+  fields: {}
+
 get_ride_history:
   name: Get Ride History
-  description: Retrieve recent ride history from your Uber account
+  description: Fetch your recent Uber ride history and display in a notification
   fields:
     limit:
       name: Limit
-      description: Number of rides to retrieve from history
+      description: Number of rides to retrieve (default 5)
       required: false
-      default: 10
-      example: 10
+      default: 5
+      example: 5
       selector:
         number:
           min: 1

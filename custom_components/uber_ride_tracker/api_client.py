@@ -215,3 +215,123 @@ class UberAPIClient:
         except Exception as e:
             _LOGGER.error("Error fetching receipt: %s", e)
             return None
+    
+    async def test_api_access(self) -> Dict[str, Any]:
+        """Test what API endpoints we can access."""
+        results = {
+            "timestamp": datetime.now().isoformat(),
+            "token_valid": False,
+            "accessible_endpoints": [],
+            "errors": []
+        }
+        
+        # First ensure we have a token
+        if not self.access_token:
+            token_result = await self.test_connection()
+            if not token_result.get("success"):
+                results["errors"].append(f"Cannot get token: {token_result.get('error')}")
+                return results
+        
+        results["token_valid"] = True
+        
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json"
+        }
+        
+        # Test endpoints
+        endpoints_to_test = [
+            ("/v1.2/me", "User Profile"),
+            ("/v1.2/requests/current", "Current Ride"),
+            ("/v1.2/history", "Ride History"),
+            ("/v1.2/payment-methods", "Payment Methods"),
+            ("/v1.2/places", "Saved Places"),
+            ("/v1.2/products", "Available Products"),
+        ]
+        
+        for endpoint, description in endpoints_to_test:
+            try:
+                async with self.session.get(
+                    f"{API_BASE_URL}{endpoint}",
+                    headers=headers,
+                    params={"limit": 1} if "history" in endpoint else {}
+                ) as response:
+                    result = {
+                        "endpoint": endpoint,
+                        "description": description,
+                        "status": response.status,
+                        "accessible": response.status in [200, 404]  # 404 is ok for current ride
+                    }
+                    
+                    if response.status == 200:
+                        data = await response.json()
+                        if endpoint == "/v1.2/me":
+                            result["sample_data"] = {
+                                "email": data.get("email"),
+                                "name": f"{data.get('first_name', '')} {data.get('last_name', '')}",
+                                "uuid": data.get("uuid", "")[:8] + "..."
+                            }
+                        elif endpoint == "/v1.2/history":
+                            result["sample_data"] = {
+                                "count": data.get("count", 0),
+                                "has_rides": data.get("count", 0) > 0
+                            }
+                        elif endpoint == "/v1.2/requests/current":
+                            result["sample_data"] = {"has_active_ride": True}
+                    elif response.status == 404 and endpoint == "/v1.2/requests/current":
+                        result["sample_data"] = {"has_active_ride": False}
+                        result["accessible"] = True
+                    elif response.status == 401:
+                        result["error"] = "Unauthorized - scope may be missing"
+                    else:
+                        result["error"] = await response.text()
+                    
+                    results["accessible_endpoints"].append(result)
+                    
+            except Exception as e:
+                results["accessible_endpoints"].append({
+                    "endpoint": endpoint,
+                    "description": description,
+                    "error": str(e),
+                    "accessible": False
+                })
+        
+        return results
+    
+    async def get_ride_history(self, limit: int = 5) -> Optional[Dict[str, Any]]:
+        """Get ride history."""
+        if not self.access_token:
+            await self.test_connection()
+            if not self.access_token:
+                return None
+        
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json"
+        }
+        
+        try:
+            async with self.session.get(
+                f"{API_BASE_URL}/v1.2/history",
+                headers=headers,
+                params={"limit": limit, "offset": 0}
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return {
+                        "count": data.get("count", 0),
+                        "rides": data.get("history", []),
+                        "success": True
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "error": f"HTTP {response.status}",
+                        "details": await response.text()
+                    }
+        except Exception as e:
+            _LOGGER.error("Error fetching ride history: %s", e)
+            return {
+                "success": False,
+                "error": str(e)
+            }
