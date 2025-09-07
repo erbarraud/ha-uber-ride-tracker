@@ -152,11 +152,8 @@ async def verify_card_installation(hass: HomeAssistant) -> bool:
             _LOGGER.error("Card file seems too small: %d bytes", size)
             return False
         
-        # Check if it contains the custom element definition
-        content = card_path.read_text()
-        if "customElements.define('uber-ride-tracker-card'" not in content:
-            _LOGGER.error("Card file doesn't contain proper element definition")
-            return False
+        # Skip content check to avoid blocking I/O
+        # Just verify file exists and has reasonable size
         
         _LOGGER.info("Card installation verified: %s (%d bytes)", card_path, size)
         return True
