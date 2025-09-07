@@ -5,37 +5,21 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.typing import ConfigType
-from homeassistant.components.lovelace import async_register_resource
-from homeassistant.components.lovelace.resources import ResourceStorageCollection
 
 from .const import (
     CONF_CLIENT_ID,
     CONF_CLIENT_SECRET,
     DOMAIN,
 )
-from .migrations import async_migrate_entry, CURRENT_CONFIG_VERSION
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.UPDATE]
-
-LOVELACE_CARD_URL = "/hacsfiles/uber_ride_tracker/uber-ride-tracker-card.js"
-LOVELACE_CARD_TYPE = "module"
+PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Uber Ride Tracker from a config entry."""
-    # Handle migration if needed
-    if entry.version < CURRENT_CONFIG_VERSION:
-        if not await async_migrate_entry(hass, entry):
-            _LOGGER.error("Migration failed for %s", entry.entry_id)
-            return False
-    
     hass.data.setdefault(DOMAIN, {})
-    
-    # Auto-register the Lovelace card resource
-    await _register_lovelace_card(hass)
     
     # Store the basic configuration
     # OAuth will need to be implemented with a proper flow
@@ -95,73 +79,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "Use service 'uber_ride_tracker.test_api_connection' to test API."
     )
     
-    # Show card setup notification
-    await _show_card_setup_notification(hass, entry.entry_id)
-    
     return True
-
-
-async def _register_lovelace_card(hass: HomeAssistant) -> None:
-    """Register the custom Lovelace card resource."""
-    # Check if already registered
-    resources = hass.data.get("lovelace", {}).get("resources", None)
-    if resources:
-        for resource in resources.async_items():
-            if LOVELACE_CARD_URL in resource.get("url", ""):
-                _LOGGER.debug("Lovelace card already registered")
-                return
-    
-    try:
-        # Try to register the resource
-        await async_register_resource(
-            hass,
-            url=LOVELACE_CARD_URL,
-            resource_type=LOVELACE_CARD_TYPE
-        )
-        _LOGGER.info("Successfully registered Uber Ride Tracker card resource")
-    except Exception as e:
-        _LOGGER.debug("Could not auto-register card resource: %s", e)
-        # Fall back to manual registration instructions
-
-
-async def _show_card_setup_notification(hass: HomeAssistant, entry_id: str) -> None:
-    """Show notification about how to add the card to dashboard."""
-    message = """
-## 🎉 Uber Ride Tracker is Ready!
-
-### Quick Add to Dashboard:
-
-1. **Edit any dashboard** (click pencil icon)
-2. Click **"+ Add Card"**
-3. Search for **"Uber Ride Tracker"**
-4. Click to add!
-
-### Manual Add (YAML):
-```yaml
-type: custom:uber-ride-tracker-card
-entity: sensor.uber_ride_tracker_ride_status
-```
-
-### Features:
-- 🎨 Apple Live Activity design
-- 📍 Real-time ride tracking
-- 👤 Driver info & photo
-- 📊 Trip progress bar
-- 📱 Mobile optimized
-
-[View More Examples](https://github.com/yourusername/ha-uber-ride-tracker#dashboard-cards)
-"""
-    
-    await hass.services.async_call(
-        "persistent_notification",
-        "create",
-        {
-            "title": "✅ Add Uber Tracker Card to Dashboard",
-            "message": message,
-            "notification_id": f"{DOMAIN}_card_setup_{entry_id}",
-        },
-        blocking=False
-    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
