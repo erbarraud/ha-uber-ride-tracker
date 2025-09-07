@@ -10,7 +10,9 @@ from homeassistant.util import yaml
 _LOGGER = logging.getLogger(__name__)
 
 CARD_FILENAME = "uber-ride-tracker-card.js"
+CALLBACK_FILENAME = "uber_callback.html"
 CARD_URL = f"/local/{CARD_FILENAME}"
+CALLBACK_URL = f"/local/{CALLBACK_FILENAME}"
 
 
 async def ensure_card_installed(hass: HomeAssistant) -> bool:
@@ -36,38 +38,49 @@ async def ensure_card_installed(hass: HomeAssistant) -> bool:
 
 
 async def copy_card_to_www(hass: HomeAssistant) -> bool:
-    """Copy the card file to www folder."""
+    """Copy the card and callback files to www folder."""
     try:
         # Get paths
         www_path = Path(hass.config.path("www"))
-        card_dest = www_path / CARD_FILENAME
         
-        # Path to the card in the integration
+        # Path to the files in the integration
         integration_dir = Path(__file__).parent
-        card_source = integration_dir / "www" / CARD_FILENAME
-        
-        # Verify source exists
-        if not card_source.exists():
-            _LOGGER.error("Card source file not found at %s", card_source)
-            return False
         
         # Create www directory if it doesn't exist
         if not www_path.exists():
             _LOGGER.info("Creating www directory at %s", www_path)
             www_path.mkdir(mode=0o755, parents=True, exist_ok=True)
         
-        # Copy the card file
         import shutil
-        shutil.copy2(str(card_source), str(card_dest))
-        _LOGGER.info("Card copied to %s", card_dest)
         
-        # Set proper permissions
-        card_dest.chmod(0o644)
+        # Copy card file
+        card_source = integration_dir / "www" / CARD_FILENAME
+        card_dest = www_path / CARD_FILENAME
+        
+        if card_source.exists():
+            shutil.copy2(str(card_source), str(card_dest))
+            card_dest.chmod(0o644)
+            _LOGGER.info("Card copied to %s", card_dest)
+        else:
+            _LOGGER.error("Card source file not found at %s", card_source)
+            return False
+            
+        # Copy callback HTML file
+        callback_source = integration_dir / "www" / CALLBACK_FILENAME
+        callback_dest = www_path / CALLBACK_FILENAME
+        
+        if callback_source.exists():
+            shutil.copy2(str(callback_source), str(callback_dest))
+            callback_dest.chmod(0o644)
+            _LOGGER.info("Callback page copied to %s", callback_dest)
+        else:
+            _LOGGER.warning("Callback HTML not found at %s", callback_source)
+            # Don't fail if callback is missing, it might be added manually
         
         return True
         
     except Exception as e:
-        _LOGGER.error("Failed to copy card file: %s", e)
+        _LOGGER.error("Failed to copy files: %s", e)
         return False
 
 
