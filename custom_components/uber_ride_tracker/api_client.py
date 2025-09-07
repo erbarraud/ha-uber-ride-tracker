@@ -34,8 +34,8 @@ class UberAPIClient:
         # Generate OAuth URL for user authorization
         from urllib.parse import urlencode
         
-        # Use your actual Home Assistant URL
-        redirect_uri = "https://home.erbarraud.com/auth/external/callback"
+        # Use a simple redirect URI - you can use localhost or your domain
+        redirect_uri = "http://localhost:8080/callback"
         
         auth_params = {
             "client_id": self.client_id,
@@ -65,7 +65,7 @@ class UberAPIClient:
         """Exchange authorization code for access token."""
         # Use the same redirect URI that was used for authorization
         if not redirect_uri:
-            redirect_uri = "https://home.erbarraud.com/auth/external/callback"
+            redirect_uri = "http://localhost:8080/callback"
             
         token_data = {
             "client_id": self.client_id,

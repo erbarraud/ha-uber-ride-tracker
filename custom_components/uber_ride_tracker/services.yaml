@@ -15,8 +15,8 @@ authorize:
       name: Redirect URI
       description: The redirect URI used (must match what's in your Uber app)
       required: false
-      default: "https://home.erbarraud.com/auth/external/callback"
-      example: "https://home.erbarraud.com/auth/external/callback"
+      default: "http://localhost:8080/callback"
+      example: "http://localhost:8080/callback"
       selector:
         text:
 
