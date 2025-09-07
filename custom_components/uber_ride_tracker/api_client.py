@@ -34,8 +34,9 @@ class UberAPIClient:
         # Generate OAuth URL for user authorization
         from urllib.parse import urlencode
         
-        # Use a simple redirect URI - you can use localhost or your domain
-        redirect_uri = "http://localhost:8080/callback"
+        # Use your actual Home Assistant domain  
+        # This should be added to your Uber app's redirect URIs
+        redirect_uri = "https://home.erbarraud.com/local/uber_callback.html"
         
         auth_params = {
             "client_id": self.client_id,
@@ -65,7 +66,7 @@ class UberAPIClient:
         """Exchange authorization code for access token."""
         # Use the same redirect URI that was used for authorization
         if not redirect_uri:
-            redirect_uri = "http://localhost:8080/callback"
+            redirect_uri = "https://home.erbarraud.com/local/uber_callback.html"
             
         token_data = {
             "client_id": self.client_id,

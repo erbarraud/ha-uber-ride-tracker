@@ -80,11 +80,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             message += f"**Auth URL:** {result.get('auth_url')}\n\n"
             message += "### Instructions:\n"
             message += "1. Add this redirect URI to your Uber app:\n"
-            message += "   `http://localhost:8080/callback`\n\n"
+            message += "   `https://home.erbarraud.com/local/uber_callback.html`\n\n"
             message += "2. Visit the auth URL above\n"
-            message += "3. Authorize the app\n"
-            message += "4. You'll see an error page - that's OK!\n"
-            message += "5. Copy the code from the URL (after ?code=)\n"
+            message += "3. Authorize the app with your Uber account\n"
+            message += "4. You'll see a success page with your auth code\n"
+            message += "5. Copy the code (there's a copy button)\n"
             message += "6. Use the `uber_ride_tracker.authorize` service with that code\n"
         else:
             message = f"## API Test Results\n\n"
@@ -195,9 +195,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         auth_code = call.data.get("auth_code")
         redirect_uri = call.data.get("redirect_uri")
         
+        # If no auth code provided, check if we have a stored one
         if not auth_code:
-            _LOGGER.error("No auth code provided")
-            return
+            auth_code = hass.data[DOMAIN].get("last_auth_code")
+            if not auth_code:
+                _LOGGER.error("No auth code provided and no stored code found")
+                return
+            _LOGGER.info("Using stored auth code from callback")
         
         api_client = hass.data[DOMAIN][entry.entry_id].get("api_client")
         if not api_client:
