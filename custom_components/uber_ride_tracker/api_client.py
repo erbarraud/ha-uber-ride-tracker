@@ -3,6 +3,7 @@ import logging
 import aiohttp
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
+from urllib.parse import urlencode
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -23,18 +24,50 @@ class UberAPIClient:
         self.session = async_get_clientsession(hass)
         self.access_token = None
         self.token_expires = None
+        self.refresh_token = None
         
     async def test_connection(self) -> Dict[str, Any]:
         """Test if we can connect to Uber API."""
+        # Note: Uber requires OAuth2 authorization code flow for user data
+        # Client credentials flow doesn't work for accessing ride data
+        
+        # Generate OAuth URL for user authorization
+        from urllib.parse import urlencode
+        
+        auth_params = {
+            "client_id": self.client_id,
+            "response_type": "code",
+            "scope": "profile history ride_request all_trips",
+            "redirect_uri": "https://my.home-assistant.io/redirect/oauth",
+            "state": "ha_uber_tracker"
+        }
+        
+        auth_url = f"https://login.uber.com/oauth/v2/authorize?{urlencode(auth_params)}"
+        
+        _LOGGER.warning(
+            "Uber API requires OAuth user authorization. "
+            "Please visit the authorization URL and grant access."
+        )
+        
+        return {
+            "success": False,
+            "requires_oauth": True,
+            "auth_url": auth_url,
+            "message": "Visit the auth URL to authorize access to your Uber account",
+            "redirect_uri_info": "Make sure your Uber app has 'https://my.home-assistant.io/redirect/oauth' as a redirect URI"
+        }
+    
+    async def exchange_auth_code(self, auth_code: str) -> Dict[str, Any]:
+        """Exchange authorization code for access token."""
+        token_data = {
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "grant_type": "authorization_code",
+            "code": auth_code,
+            "redirect_uri": "https://my.home-assistant.io/redirect/oauth"
+        }
+        
         try:
-            # Try to get client credentials token (server-to-server)
-            token_data = {
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-                "grant_type": "client_credentials",
-                "scope": "profile ride_request"
-            }
-            
             async with self.session.post(
                 "https://login.uber.com/oauth/v2/token",
                 data=token_data,
@@ -43,26 +76,27 @@ class UberAPIClient:
                 if response.status == 200:
                     data = await response.json()
                     self.access_token = data.get("access_token")
+                    self.refresh_token = data.get("refresh_token")
                     expires_in = data.get("expires_in", 3600)
                     self.token_expires = datetime.now() + timedelta(seconds=expires_in)
                     
-                    _LOGGER.info("Successfully obtained Uber API token")
+                    _LOGGER.info("Successfully obtained Uber access token")
                     return {
                         "success": True,
                         "token_obtained": True,
-                        "expires_in": expires_in
+                        "expires_in": expires_in,
+                        "scope": data.get("scope")
                     }
                 else:
                     error_text = await response.text()
-                    _LOGGER.error("Failed to get token: %s", error_text)
+                    _LOGGER.error("Failed to exchange auth code: %s", error_text)
                     return {
                         "success": False,
                         "error": f"HTTP {response.status}",
                         "details": error_text
                     }
-                    
         except Exception as e:
-            _LOGGER.error("Error connecting to Uber API: %s", e)
+            _LOGGER.error("Error exchanging auth code: %s", e)
             return {
                 "success": False,
                 "error": str(e)
@@ -225,12 +259,16 @@ class UberAPIClient:
             "errors": []
         }
         
-        # First ensure we have a token
+        # Check if we have a token
         if not self.access_token:
-            token_result = await self.test_connection()
-            if not token_result.get("success"):
-                results["errors"].append(f"Cannot get token: {token_result.get('error')}")
-                return results
+            # Generate OAuth URL instead
+            connection_result = await self.test_connection()
+            results["requires_oauth"] = True
+            results["auth_url"] = connection_result.get("auth_url")
+            results["errors"].append(
+                "OAuth authorization required. Visit the URL in notifications to authorize."
+            )
+            return results
         
         results["token_valid"] = True
         

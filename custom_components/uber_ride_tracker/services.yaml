@@ -1,5 +1,17 @@
 # Diagnostic Services for Uber Ride Tracker
 
+authorize:
+  name: Authorize with Uber
+  description: Exchange authorization code for access token after OAuth flow
+  fields:
+    auth_code:
+      name: Authorization Code
+      description: The authorization code from Uber OAuth redirect
+      required: true
+      example: "JG7xxxxxxxxxxxxx"
+      selector:
+        text:
+
 test_api_access:
   name: Test API Access
   description: Test which Uber API endpoints are accessible with your credentials. Shows results in a notification.

@@ -177,7 +177,49 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             },
         )
     
+    async def handle_authorize(call: ServiceCall):
+        """Handle OAuth authorization with auth code."""
+        auth_code = call.data.get("auth_code")
+        if not auth_code:
+            _LOGGER.error("No auth code provided")
+            return
+        
+        api_client = hass.data[DOMAIN][entry.entry_id].get("api_client")
+        if not api_client:
+            _LOGGER.error("No API client available")
+            return
+        
+        result = await api_client.exchange_auth_code(auth_code)
+        
+        if result.get("success"):
+            message = "## ✅ Authorization Successful!\n\n"
+            message += f"**Token obtained:** Yes\n"
+            message += f"**Expires in:** {result.get('expires_in')} seconds\n"
+            message += f"**Scope:** {result.get('scope')}\n\n"
+            message += "You can now use the Uber Ride Tracker services!"
+        else:
+            message = "## ❌ Authorization Failed\n\n"
+            message += f"**Error:** {result.get('error')}\n"
+            if result.get('details'):
+                message += f"**Details:** {result.get('details')}\n"
+        
+        await hass.services.async_call(
+            "persistent_notification",
+            "create",
+            {
+                "title": "🔐 Uber OAuth Authorization",
+                "message": message,
+                "notification_id": "uber_auth_result",
+            },
+        )
+    
     # Register all services
+    hass.services.async_register(
+        DOMAIN,
+        "authorize",
+        handle_authorize,
+    )
+    
     hass.services.async_register(
         DOMAIN,
         "test_api_access",
