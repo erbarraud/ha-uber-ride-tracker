@@ -29,14 +29,16 @@ async def async_setup_entry(
 class UberRideActiveBinarySensor(BinarySensorEntity):
     """Binary sensor for active Uber ride."""
 
-    _attr_name = "Uber Ride Active"
     _attr_icon = "mdi:car-connected"
-    _attr_has_entity_name = False
+    _attr_has_entity_name = True
 
     def __init__(self, entry: ConfigEntry) -> None:
         """Initialize the binary sensor."""
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_ride_active"
+        # This will create entity_id: binary_sensor.uber_ride_tracker_ride_active
+        self.entity_id = f"binary_sensor.{DOMAIN}_ride_active"
+        self._attr_name = "Ride Active"
 
     @property
     def is_on(self) -> bool:
