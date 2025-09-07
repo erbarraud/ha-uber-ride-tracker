@@ -1,104 +1,99 @@
 # Uber Ride Tracker - Setup Guide
 
-## Your Uber App Credentials
+## Prerequisites
 
-Based on your Uber Developer Dashboard:
+1. **Uber Developer Account**: Create one at https://developer.uber.com
+2. **Uber App Registration**: Register your app in the Uber Developer Dashboard
+3. **Home Assistant**: Accessible via `https://home.erbarraud.com`
 
-- **Client ID**: `gyUPRACf08NFEBoEcXTG3-Wa8U3FB-Bf`
-- **Client Secret**: `wzo8V7ivmB1DRPbewGiFQtXtl27wDP9T9e3QVYWJ`
+## Step 1: Configure Your Uber App
 
-## Installation Steps
+1. Go to https://developer.uber.com/dashboard
+2. Select your app "HA Test App"
+3. Under **Redirect URIs**, ensure you have:
+   ```
+   https://home.erbarraud.com/local/uber_callback.html
+   ```
+4. Note your **Application ID** and **Secret**
 
-### 1. Add to HACS
+## Step 2: Install the Integration
 
-1. Open HACS in Home Assistant
-2. Click the three dots menu → **Custom repositories**
-3. Add your GitHub repository URL
-4. Category: **Integration**
-5. Click **Add**
+1. Copy the `custom_components/uber_ride_tracker` folder to your Home Assistant's `custom_components` directory
+2. Restart Home Assistant
+3. Go to **Settings** → **Devices & Services** → **Add Integration**
+4. Search for "Uber Ride Tracker"
+5. Enter your:
+   - **Application ID**: `g7UPHAGKIBhPE8dEcXTQ3-Wa8UPl1b-elf`
+   - **Secret**: (your client secret from Uber dashboard)
 
-### 2. Install Integration
+## Step 3: Authorize with Uber
 
-1. In HACS, search for "Uber Ride Tracker"
-2. Click **Download**
-3. Restart Home Assistant
+### Option A: Using Home Assistant Service
 
-### 3. Configure Integration
+1. Go to **Developer Tools** → **Services**
+2. Search for `uber_ride_tracker.test_api_access`
+3. Click **Call Service**
+4. A notification will appear with an authorization URL
+5. Click the URL to authorize with Uber
+6. After authorization, copy the code from the callback page
+7. Use the `uber_ride_tracker.authorize` service with the code
 
-1. Go to **Settings** → **Devices & Services**
-2. Click **Add Integration**
-3. Search for **"Uber Ride Tracker"**
-4. Enter your credentials:
-   - Client ID: `gyUPRACf08NFEBoEcXTG3-Wa8U3FB-Bf`
-   - Client Secret: `wzo8V7ivmB1DRPbewGiFQtXtl27wDP9T9e3QVYWJ`
-5. Click **Submit**
-6. You'll be redirected to Uber to authorize
-7. Login and grant permissions
-8. You'll be redirected back to Home Assistant
+### Option B: Using Test Script
 
-## Testing the Integration
+1. Edit `test_uber_auth.py` and add your CLIENT_SECRET
+2. Run:
+   ```bash
+   python test_uber_auth.py
+   ```
+3. Follow the URL provided to authorize
+4. Run again with the auth code:
+   ```bash
+   python test_uber_auth.py YOUR_AUTH_CODE
+   ```
 
-### Check Entities
-After setup, verify these entities exist:
-- `sensor.uber_ride_tracker_ride_status`
-- `sensor.uber_ride_tracker_ride_progress`
-- `sensor.uber_ride_tracker_driver_location`
-- `binary_sensor.uber_ride_tracker_ride_active`
-- `device_tracker.uber_ride_tracker_driver`
+## Step 4: Verify Setup
 
-### Test Without Active Ride
-Without an active ride, entities will show:
-- Status: "no_active_ride"
-- Progress: 0%
-- Binary sensor: Off
+1. Call the `uber_ride_tracker.test_api_access` service
+2. Check the notification for API access status
+3. If successful, you should see:
+   - ✅ User Profile
+   - ✅ Ride History
+   - ✅ Available Products
 
-### Test With Active Ride
-1. Request an Uber ride via the Uber app
-2. Watch entities update in real-time
-3. Check the map for driver location
-4. Monitor progress percentage
+## Available Services
 
-## Dashboard Setup
-
-Add this card to test:
-
-```yaml
-type: vertical-stack
-cards:
-  - type: entities
-    title: Uber Status
-    entities:
-      - entity: sensor.uber_ride_tracker_ride_status
-      - entity: sensor.uber_ride_tracker_ride_progress
-      - entity: binary_sensor.uber_ride_tracker_ride_active
-  
-  - type: conditional
-    conditions:
-      - entity: binary_sensor.uber_ride_tracker_ride_active
-        state: "on"
-    card:
-      type: map
-      entities:
-        - device_tracker.uber_ride_tracker_driver
-```
+- `uber_ride_tracker.authorize` - Complete OAuth authorization
+- `uber_ride_tracker.test_api_access` - Test API connectivity
+- `uber_ride_tracker.get_ride_history` - Get recent rides
+- `uber_ride_tracker.check_current_ride` - Check for active ride
+- `uber_ride_tracker.setup_callback` - Manually setup callback page
 
 ## Troubleshooting
 
-### OAuth Error
-- Verify redirect URI in Uber app: `https://my.home-assistant.io/redirect/oauth`
-- Check external URL is configured in Home Assistant
+### "Invalid Scope" Error
+- The integration requests basic scopes: `profile history`
+- For privileged scopes (like `request`), you need Full Access from Uber
 
-### No Data
-- Normal without active ride
-- Request a ride to see real data
-- Check logs: Settings → System → Logs
+### "Unauthorized" Error
+- Your token may have expired
+- Re-run the authorization process
 
-### Token Issues
-- Integration auto-refreshes tokens
-- If issues persist, remove and re-add integration
+### Callback Page Not Found
+- Run the `uber_ride_tracker.setup_callback` service
+- Restart Home Assistant after setup
 
-## Support
+## API Endpoints Used
 
-- GitHub Issues: [Report problems](https://github.com/yourusername/ha-uber-ride-tracker/issues)
-- Home Assistant Logs: Check for error messages
-- Developer Tools → States: Verify entity states
+| Endpoint | Description | Required Scope |
+|----------|-------------|----------------|
+| `/v1.2/me` | User profile | `profile` |
+| `/v1.2/history` | Ride history | `history` |
+| `/v1.2/requests/current` | Current ride | `request` (privileged) |
+| `/v1/products` | Available products | None (public) |
+
+## Notes
+
+- Some scopes like `request` are privileged and require Full Access approval from Uber
+- The integration starts with basic scopes that work in development
+- Token expires after ~3600 seconds and needs refresh
+- All ride tracking features require proper OAuth authorization

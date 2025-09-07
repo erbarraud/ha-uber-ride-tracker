@@ -38,15 +38,16 @@ class UberAPIClient:
         # This should be added to your Uber app's redirect URIs
         redirect_uri = "https://home.erbarraud.com/local/uber_callback.html"
         
-        # Try without scope - Uber might use default scopes
+        # Request specific scopes for ride tracking
+        # Note: Some scopes like 'request' are privileged and need Full Access approval
+        # Using scopes that should work in development
         auth_params = {
             "client_id": self.client_id,
             "response_type": "code",
             "redirect_uri": redirect_uri,
+            "scope": "profile history",  # Start with basic scopes
             "state": "ha_uber_tracker"
         }
-        # Optionally try with scope if you know valid ones
-        # Common Uber scopes: "openid", "offline_access", "profile", "email"
         
         auth_url = f"https://login.uber.com/oauth/v2/authorize?{urlencode(auth_params)}"
         
@@ -288,22 +289,31 @@ class UberAPIClient:
             "Content-Type": "application/json"
         }
         
-        # Test endpoints
+        # Test endpoints - v1.2 API endpoints
+        # Note: Some endpoints require specific scopes
         endpoints_to_test = [
-            ("/v1.2/me", "User Profile"),
-            ("/v1.2/requests/current", "Current Ride"),
-            ("/v1.2/history", "Ride History"),
-            ("/v1.2/payment-methods", "Payment Methods"),
-            ("/v1.2/places", "Saved Places"),
-            ("/v1.2/products", "Available Products"),
+            ("/v1.2/me", "User Profile"),  # Requires 'profile' scope
+            ("/v1.2/requests/current", "Current Ride"),  # Requires 'request' scope (privileged)
+            ("/v1.2/history", "Ride History"),  # Requires 'history' scope
+            ("/v1.2/payment-methods", "Payment Methods"),  # Requires 'request' scope
+            ("/v1.2/places", "Saved Places"),  # Requires 'places' scope
+            ("/v1/products", "Available Products"),  # Public endpoint, no auth needed
         ]
         
         for endpoint, description in endpoints_to_test:
             try:
+                # Add latitude/longitude for products endpoint
+                params = {}
+                if "history" in endpoint:
+                    params = {"limit": 1}
+                elif "products" in endpoint:
+                    # Use a default location (San Francisco) for testing
+                    params = {"latitude": 37.7749, "longitude": -122.4194}
+                
                 async with self.session.get(
                     f"{API_BASE_URL}{endpoint}",
-                    headers=headers,
-                    params={"limit": 1} if "history" in endpoint else {}
+                    headers=headers if endpoint != "/v1/products" else {},  # Products doesn't need auth
+                    params=params
                 ) as response:
                     result = {
                         "endpoint": endpoint,
