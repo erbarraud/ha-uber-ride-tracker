@@ -26,14 +26,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     card_setup_success = await ensure_card_installed(hass)
     await show_setup_instructions(hass, card_setup_success)
     
-    # Store the basic configuration
-    # OAuth will need to be implemented with a proper flow
+    # Create API client
+    from .api_client import UberAPIClient
+    api_client = UberAPIClient(
+        hass,
+        entry.data[CONF_CLIENT_ID],
+        entry.data[CONF_CLIENT_SECRET]
+    )
+    
+    # Test connection
+    connection_result = await api_client.test_connection()
+    if connection_result.get("success"):
+        _LOGGER.info("Uber API connection successful")
+    else:
+        _LOGGER.warning("Uber API connection failed: %s", connection_result.get("error"))
+    
+    # Store the configuration and API client
     hass.data[DOMAIN][entry.entry_id] = {
         "client_id": entry.data[CONF_CLIENT_ID],
         "client_secret": entry.data[CONF_CLIENT_SECRET],
         "entry": entry,
-        # Mock coordinator data for now
-        "coordinator": None,
+        "api_client": api_client,
     }
     
     # Register device
