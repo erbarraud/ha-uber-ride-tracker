@@ -19,12 +19,13 @@ API_BASE = "https://api.uber.com"
 
 async def generate_auth_url():
     """Generate OAuth authorization URL."""
+    # Don't specify scope to avoid invalid_scope error
     params = {
         "client_id": CLIENT_ID,
         "response_type": "code",
         "redirect_uri": REDIRECT_URI,
-        "scope": "profile history",  # Basic scopes
         "state": "test_auth"
+        # No scope parameter - let Uber use defaults
     }
     
     auth_url = f"{AUTH_URL}?{urlencode(params)}"

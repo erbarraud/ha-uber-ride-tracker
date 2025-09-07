@@ -212,13 +212,15 @@ class UberRideTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _generate_auth_url(self) -> str:
         """Generate OAuth authorization URL."""
+        # Don't specify scope - let Uber use default scopes
+        # The invalid_scope error suggests Uber doesn't accept the scopes we're requesting
         params = {
             "client_id": self.client_id,
             "response_type": "code",
             "redirect_uri": self.redirect_uri,
-            "scope": "profile history",
             "state": "ha_setup"
         }
+        _LOGGER.info("Generating auth URL without explicit scopes to avoid invalid_scope error")
         return f"https://login.uber.com/oauth/v2/authorize?{urlencode(params)}"
 
     async def _exchange_auth_code(self) -> bool:

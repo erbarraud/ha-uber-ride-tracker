@@ -38,15 +38,14 @@ class UberAPIClient:
         # This should be added to your Uber app's redirect URIs
         redirect_uri = "https://home.erbarraud.com/local/uber_callback.html"
         
-        # Request specific scopes for ride tracking
-        # Note: Some scopes like 'request' are privileged and need Full Access approval
-        # Using scopes that should work in development
+        # Don't request specific scopes to avoid invalid_scope error
+        # Uber will grant default scopes based on app configuration
         auth_params = {
             "client_id": self.client_id,
             "response_type": "code",
             "redirect_uri": redirect_uri,
-            "scope": "profile history",  # Start with basic scopes
             "state": "ha_uber_tracker"
+            # Removed scope parameter - let Uber use defaults
         }
         
         auth_url = f"https://login.uber.com/oauth/v2/authorize?{urlencode(auth_params)}"
