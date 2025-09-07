@@ -25,6 +25,17 @@ STEP_USER_DATA_SCHEMA = vol.Schema({
     vol.Required(CONF_CLIENT_SECRET): str,
 })
 
+STEP_AUTH_METHOD_SCHEMA = vol.Schema({
+    vol.Required("auth_method", default="oauth"): vol.In({
+        "oauth": "OAuth (Requires Uber Approval)",
+        "personal_token": "Personal Access Token (For Personal Use)"
+    })
+})
+
+STEP_PERSONAL_TOKEN_SCHEMA = vol.Schema({
+    vol.Required("personal_access_token"): str,
+})
+
 class UberRideTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Uber Ride Tracker."""
 
@@ -43,11 +54,69 @@ class UberRideTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
-        """Handle the initial step - get credentials and start OAuth."""
+        """Handle the initial step - choose authentication method."""
+        if user_input is not None:
+            if user_input["auth_method"] == "personal_token":
+                return await self.async_step_personal_token()
+            else:
+                return await self.async_step_oauth()
+        
+        return self.async_show_form(
+            step_id="user",
+            data_schema=STEP_AUTH_METHOD_SCHEMA,
+            description_placeholders={
+                "docs_url": "https://github.com/erbarraud/ha-uber-ride-tracker/blob/main/PERSONAL_TOKEN_SETUP.md"
+            }
+        )
+    
+    async def async_step_personal_token(
+        self, user_input: Optional[Dict[str, Any]] = None
+    ) -> FlowResult:
+        """Handle personal access token entry."""
+        errors: Dict[str, str] = {}
+        
+        if user_input is not None:
+            token = user_input["personal_access_token"].strip()
+            
+            # Test the token
+            test_result = await self._test_personal_token(token)
+            
+            if test_result["success"]:
+                # Create the config entry
+                return self.async_create_entry(
+                    title=f"Uber (Personal: {test_result.get('user_name', 'Unknown')})",
+                    data={
+                        "auth_type": "personal_token",
+                        "personal_access_token": token,
+                        "user_info": test_result.get("user_info", {})
+                    }
+                )
+            else:
+                errors["base"] = test_result.get("error", "invalid_token")
+        
+        return self.async_show_form(
+            step_id="personal_token",
+            data_schema=STEP_PERSONAL_TOKEN_SCHEMA,
+            errors=errors,
+            description_placeholders={
+                "instructions": """Generate a token from your Uber Dashboard:
+1. Go to https://developer.uber.com/dashboard
+2. Select your app → Auth tab
+3. Find 'Test with a Personal Access Token'
+4. Select scopes (profile, history, etc.)
+5. Click 'Generate a new token'
+6. Copy and paste it here"""
+            }
+        )
+    
+    async def async_step_oauth(
+        self, user_input: Optional[Dict[str, Any]] = None
+    ) -> FlowResult:
+        """Handle OAuth setup - get credentials and start OAuth."""
         errors: Dict[str, str] = {}
 
         if user_input is not None:
-            _LOGGER.info("Starting Uber integration setup with provided credentials")
+            _LOGGER.info("Starting Uber OAuth setup with provided credentials")
             
             # Store credentials
             self.client_id = user_input[CONF_CLIENT_ID].strip()
@@ -66,12 +135,12 @@ class UberRideTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(f"uber_{self.client_id}")
                 self._abort_if_unique_id_configured()
                 
-                # Move to OAuth step
-                return await self.async_step_oauth()
+                # Move to OAuth authorization
+                return await self.async_step_oauth_auth()
 
-        # Show initial form
+        # Show OAuth credentials form
         return self.async_show_form(
-            step_id="user",
+            step_id="oauth",
             data_schema=STEP_USER_DATA_SCHEMA,
             errors=errors,
             description_placeholders={
@@ -79,7 +148,7 @@ class UberRideTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def async_step_oauth(
+    async def async_step_oauth_auth(
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
         """Handle OAuth authorization."""
@@ -379,6 +448,54 @@ class UberRideTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         
         return results
 
+    async def _test_personal_token(self, token: str) -> Dict[str, Any]:
+        """Test a personal access token."""
+        _LOGGER.info("Testing personal access token")
+        
+        session = async_get_clientsession(self.hass)
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        
+        # Test the token by getting user profile
+        try:
+            async with session.get(
+                "https://api.uber.com/v1.2/me",
+                headers=headers
+            ) as response:
+                if response.status == 200:
+                    user_data = await response.json()
+                    _LOGGER.info("Personal token valid for user: %s", user_data.get("email"))
+                    return {
+                        "success": True,
+                        "user_name": user_data.get("first_name", "Unknown"),
+                        "user_info": {
+                            "email": user_data.get("email"),
+                            "first_name": user_data.get("first_name"),
+                            "last_name": user_data.get("last_name"),
+                            "uuid": user_data.get("uuid")
+                        }
+                    }
+                elif response.status == 401:
+                    return {
+                        "success": False,
+                        "error": "invalid_token"
+                    }
+                else:
+                    error_text = await response.text()
+                    _LOGGER.error("Token test failed: %s", error_text)
+                    return {
+                        "success": False,
+                        "error": "api_error"
+                    }
+        except Exception as e:
+            _LOGGER.error("Exception testing personal token: %s", e)
+            return {
+                "success": False,
+                "error": "connection_error"
+            }
+    
     def _format_test_results(self) -> str:
         """Format test results for display."""
         if not self.test_results:

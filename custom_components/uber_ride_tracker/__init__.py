@@ -26,21 +26,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     card_setup_success = await ensure_card_installed(hass)
     await show_setup_instructions(hass, card_setup_success)
     
-    # Create API client with stored tokens if available
+    # Create API client based on auth type
     from .api_client import UberAPIClient
-    api_client = UberAPIClient(
-        hass,
-        entry.data[CONF_CLIENT_ID],
-        entry.data[CONF_CLIENT_SECRET]
-    )
     
-    # Set tokens if they were stored during setup
-    if "access_token" in entry.data:
-        api_client.access_token = entry.data["access_token"]
-        _LOGGER.info("Using stored access token from setup")
-    if "refresh_token" in entry.data:
-        api_client.refresh_token = entry.data["refresh_token"]
-        _LOGGER.info("Using stored refresh token from setup")
+    if entry.data.get("auth_type") == "personal_token":
+        # Personal token mode - no client ID/secret needed
+        api_client = UberAPIClient(
+            hass,
+            client_id=None,
+            client_secret=None
+        )
+        api_client.access_token = entry.data["personal_access_token"]
+        _LOGGER.info("Using personal access token for user: %s", 
+                     entry.data.get("user_info", {}).get("email", "Unknown"))
+    else:
+        # OAuth mode
+        api_client = UberAPIClient(
+            hass,
+            entry.data.get(CONF_CLIENT_ID),
+            entry.data.get(CONF_CLIENT_SECRET)
+        )
+        
+        # Set tokens if they were stored during setup
+        if "access_token" in entry.data:
+            api_client.access_token = entry.data["access_token"]
+            _LOGGER.info("Using stored access token from setup")
+        if "refresh_token" in entry.data:
+            api_client.refresh_token = entry.data["refresh_token"]
+            _LOGGER.info("Using stored refresh token from setup")
     
     # Test connection
     connection_result = await api_client.test_connection()
@@ -51,8 +64,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     # Store the configuration and API client
     hass.data[DOMAIN][entry.entry_id] = {
-        "client_id": entry.data[CONF_CLIENT_ID],
-        "client_secret": entry.data[CONF_CLIENT_SECRET],
+        "client_id": entry.data.get(CONF_CLIENT_ID),
+        "client_secret": entry.data.get(CONF_CLIENT_SECRET),
+        "auth_type": entry.data.get("auth_type", "oauth"),
         "entry": entry,
         "api_client": api_client,
     }
