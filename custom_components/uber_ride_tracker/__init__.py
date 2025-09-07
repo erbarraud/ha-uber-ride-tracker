@@ -257,10 +257,74 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         handle_check_current_ride,
     )
     
+    async def handle_setup_callback(call: ServiceCall):
+        """Manually copy callback file to www folder."""
+        from pathlib import Path
+        import shutil
+        
+        try:
+            # Get paths
+            www_path = Path(hass.config.path("www"))
+            integration_dir = Path(__file__).parent
+            
+            # Create www directory if it doesn't exist
+            if not www_path.exists():
+                www_path.mkdir(mode=0o755, parents=True, exist_ok=True)
+                message = f"Created www directory at: {www_path}\n\n"
+            else:
+                message = f"www directory exists at: {www_path}\n\n"
+            
+            # Copy callback HTML
+            callback_source = integration_dir / "www" / "uber_callback.html"
+            callback_dest = www_path / "uber_callback.html"
+            
+            if callback_source.exists():
+                shutil.copy2(str(callback_source), str(callback_dest))
+                callback_dest.chmod(0o644)
+                message += f"✅ Callback page copied to: {callback_dest}\n"
+                message += f"Access it at: https://home.erbarraud.com/local/uber_callback.html\n\n"
+            else:
+                message += f"❌ Source file not found at: {callback_source}\n\n"
+            
+            # Also copy the card file
+            card_source = integration_dir / "www" / "uber-ride-tracker-card.js"
+            card_dest = www_path / "uber-ride-tracker-card.js"
+            
+            if card_source.exists():
+                shutil.copy2(str(card_source), str(card_dest))
+                card_dest.chmod(0o644)
+                message += f"✅ Card file copied to: {card_dest}\n"
+            else:
+                message += f"⚠️ Card file not found at: {card_source}\n"
+            
+            # List www directory contents
+            message += f"\n**Contents of {www_path}:**\n"
+            for file in www_path.iterdir():
+                message += f"- {file.name} ({file.stat().st_size} bytes)\n"
+                
+        except Exception as e:
+            message = f"❌ Error: {e}"
+        
+        await hass.services.async_call(
+            "persistent_notification",
+            "create",
+            {
+                "title": "🔧 Uber OAuth Callback Setup",
+                "message": message,
+                "notification_id": "uber_callback_setup",
+            },
+        )
+    
+    hass.services.async_register(
+        DOMAIN,
+        "setup_callback",
+        handle_setup_callback,
+    )
+    
     _LOGGER.info(
         "Uber Ride Tracker integration setup completed. "
         "Note: OAuth authentication is required for API access. "
-        "Use service 'uber_ride_tracker.test_api_connection' to test API."
+        "Use service 'uber_ride_tracker.test_api_access' to test API."
     )
     
     return True

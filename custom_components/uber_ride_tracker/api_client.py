@@ -41,7 +41,7 @@ class UberAPIClient:
         auth_params = {
             "client_id": self.client_id,
             "response_type": "code",
-            "scope": "profile history ride_request all_trips",
+            "scope": "profile",  # Start with just profile scope
             "redirect_uri": redirect_uri,
             "state": "ha_uber_tracker"
         }

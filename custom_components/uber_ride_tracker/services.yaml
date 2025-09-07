@@ -45,3 +45,8 @@ get_ride_history:
           min: 1
           max: 50
           mode: box
+
+setup_callback:
+  name: Setup OAuth Callback
+  description: Manually copy the OAuth callback page to /config/www/ folder
+  fields: {}
