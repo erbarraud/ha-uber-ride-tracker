@@ -217,8 +217,9 @@ class UberRideTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             "client_id": self.client_id,
             "response_type": "code",
             "redirect_uri": self.redirect_uri,
-            "state": "ha_setup",
-            "scope": "profile"  # Try with just profile scope
+            "state": "ha_setup"
+            # Don't specify scope to avoid invalid_scope error
+            # Uber will use the default scopes configured in the app
         }
         
         # Correct OAuth v2 endpoint per Uber docs
