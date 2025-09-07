@@ -7,14 +7,12 @@ NAME: Final = "Uber Ride Tracker"
 MANUFACTURER: Final = "Uber Technologies Inc."
 
 # OAuth2 Configuration
-OAUTH2_AUTHORIZE_URL: Final = "https://login.uber.com/oauth/v2/authorize"
-OAUTH2_TOKEN_URL: Final = "https://login.uber.com/oauth/v2/token"
+OAUTH2_AUTHORIZE_URL: Final = "https://auth.uber.com/oauth/v2/authorize"
+OAUTH2_TOKEN_URL: Final = "https://auth.uber.com/oauth/v2/token"
 OAUTH2_SCOPES: Final = [
-    "profile",
-    "request",
-    "request.receipt",
-    "all_trips",
-    "ride.request"
+    "profile"
+    # Other scopes like "request", "all_trips" require Full Access approval
+    # Only use basic scopes for development
 ]
 
 # API Configuration
