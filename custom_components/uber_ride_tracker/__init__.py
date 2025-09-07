@@ -26,13 +26,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     card_setup_success = await ensure_card_installed(hass)
     await show_setup_instructions(hass, card_setup_success)
     
-    # Create API client
+    # Create API client with stored tokens if available
     from .api_client import UberAPIClient
     api_client = UberAPIClient(
         hass,
         entry.data[CONF_CLIENT_ID],
         entry.data[CONF_CLIENT_SECRET]
     )
+    
+    # Set tokens if they were stored during setup
+    if "access_token" in entry.data:
+        api_client.access_token = entry.data["access_token"]
+        _LOGGER.info("Using stored access token from setup")
+    if "refresh_token" in entry.data:
+        api_client.refresh_token = entry.data["refresh_token"]
+        _LOGGER.info("Using stored refresh token from setup")
     
     # Test connection
     connection_result = await api_client.test_connection()
