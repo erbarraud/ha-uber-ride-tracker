@@ -34,11 +34,14 @@ class UberAPIClient:
         # Generate OAuth URL for user authorization
         from urllib.parse import urlencode
         
+        # Use your actual Home Assistant URL
+        redirect_uri = "https://home.erbarraud.com/auth/external/callback"
+        
         auth_params = {
             "client_id": self.client_id,
             "response_type": "code",
             "scope": "profile history ride_request all_trips",
-            "redirect_uri": "https://my.home-assistant.io/redirect/oauth",
+            "redirect_uri": redirect_uri,
             "state": "ha_uber_tracker"
         }
         
@@ -54,17 +57,22 @@ class UberAPIClient:
             "requires_oauth": True,
             "auth_url": auth_url,
             "message": "Visit the auth URL to authorize access to your Uber account",
-            "redirect_uri_info": "Make sure your Uber app has 'https://my.home-assistant.io/redirect/oauth' as a redirect URI"
+            "redirect_uri": redirect_uri,
+            "redirect_uri_info": f"Add this to your Uber app redirect URIs: {redirect_uri}"
         }
     
-    async def exchange_auth_code(self, auth_code: str) -> Dict[str, Any]:
+    async def exchange_auth_code(self, auth_code: str, redirect_uri: str = None) -> Dict[str, Any]:
         """Exchange authorization code for access token."""
+        # Use the same redirect URI that was used for authorization
+        if not redirect_uri:
+            redirect_uri = "https://home.erbarraud.com/auth/external/callback"
+            
         token_data = {
             "client_id": self.client_id,
             "client_secret": self.client_secret,
             "grant_type": "authorization_code",
             "code": auth_code,
-            "redirect_uri": "https://my.home-assistant.io/redirect/oauth"
+            "redirect_uri": redirect_uri
         }
         
         try:

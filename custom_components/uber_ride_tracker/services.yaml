@@ -11,6 +11,14 @@ authorize:
       example: "JG7xxxxxxxxxxxxx"
       selector:
         text:
+    redirect_uri:
+      name: Redirect URI
+      description: The redirect URI used (must match what's in your Uber app)
+      required: false
+      default: "https://home.erbarraud.com/auth/external/callback"
+      example: "https://home.erbarraud.com/auth/external/callback"
+      selector:
+        text:
 
 test_api_access:
   name: Test API Access

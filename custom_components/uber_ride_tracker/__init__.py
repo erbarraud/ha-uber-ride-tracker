@@ -180,6 +180,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def handle_authorize(call: ServiceCall):
         """Handle OAuth authorization with auth code."""
         auth_code = call.data.get("auth_code")
+        redirect_uri = call.data.get("redirect_uri")
+        
         if not auth_code:
             _LOGGER.error("No auth code provided")
             return
@@ -189,7 +191,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.error("No API client available")
             return
         
-        result = await api_client.exchange_auth_code(auth_code)
+        result = await api_client.exchange_auth_code(auth_code, redirect_uri)
         
         if result.get("success"):
             message = "## ✅ Authorization Successful!\n\n"
