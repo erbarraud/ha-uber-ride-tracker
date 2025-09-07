@@ -11,6 +11,7 @@ from .const import (
     CONF_CLIENT_SECRET,
     DOMAIN,
 )
+from .card_setup import ensure_card_installed, show_setup_instructions
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,6 +21,10 @@ PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR]
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Uber Ride Tracker from a config entry."""
     hass.data.setdefault(DOMAIN, {})
+    
+    # Setup the card file and resources
+    card_setup_success = await ensure_card_installed(hass)
+    await show_setup_instructions(hass, card_setup_success)
     
     # Store the basic configuration
     # OAuth will need to be implemented with a proper flow
